@@ -10,7 +10,7 @@
   const SITES = [
     {
       type: "blog", // 视觉风格：blog | books | link
-      name: "Blog",
+      name: "Galok's Blog",
       desc: "BLOG · 思绪与札记",
       url: "https://blog.galok.cn",
       target: "_self", // _self 当前页跳转 | _blank 新标签页
@@ -18,7 +18,7 @@
     },
     {
       type: "books",
-      name: "Books",
+      name: "知序书房",
       desc: "BOOKS · 书海漫游",
       url: "https://books.galok.cn",
       target: "_self",
