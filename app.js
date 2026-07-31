@@ -13,7 +13,7 @@
       name: "Galok's Blog",
       desc: "BLOG · 思绪与札记",
       url: "https://blog.galok.cn",
-      target: "_self", // _self 当前页跳转 | _blank 新标签页
+      target: "_blank", // _self 当前页跳转 | _blank 新标签页
       accent: "#4a9fd6",
     },
     {
@@ -21,9 +21,17 @@
       name: "Galok's 知序书房",
       desc: "BOOKS · 书海漫游",
       url: "https://books.galok.cn",
-      target: "_self",
+      target: "_blank",
       accent: "#8a7bb8",
     },
+      {
+      type: "share",
+      name: "Galok's 热爱分享",
+      desc: "Share · 海量资源",
+      url: "https://pgxcg.qzz.io",
+      target: "_blank",
+      accent: "#8a2bb1",
+      },
   ];
 
   /* ============== ② 页面标题（左上角品牌名） ============== */
