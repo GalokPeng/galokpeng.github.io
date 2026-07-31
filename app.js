@@ -18,7 +18,7 @@
     },
     {
       type: "books",
-      name: "知序书房",
+      name: "Galok's 知序书房",
       desc: "BOOKS · 书海漫游",
       url: "https://books.galok.cn",
       target: "_self",
