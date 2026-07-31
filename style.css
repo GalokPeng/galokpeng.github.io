@@ -1,0 +1,1027 @@
+/* =========================================================
+   Galok · 海上浮岛  —  纯静态样式
+   ========================================================= */
+
+:root {
+  --hud-fg: rgba(238, 246, 255, 0.92);
+  --hud-fg-dim: rgba(238, 246, 255, 0.62);
+  --glass: rgba(255, 255, 255, 0.14);
+  --glass-strong: rgba(255, 255, 255, 0.22);
+  --glass-border: rgba(255, 255, 255, 0.35);
+  --ink: #0b1f33;
+  --shadow: 0 18px 50px -18px rgba(6, 30, 60, 0.55);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: #0a1830;
+  font-family:
+    "Noto Sans SC",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  position: relative;
+  color: var(--hud-fg);
+  width: 100vw;
+  height: 100dvh;
+}
+
+/* 背景画布 */
+#ocean-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  cursor: crosshair;
+}
+
+/* ================= 顶部 HUD ================= */
+.hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(14px, 2.6vh, 26px) clamp(16px, 3.2vw, 38px);
+  pointer-events: none;
+}
+.hud > * {
+  pointer-events: auto;
+}
+
+.hud-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.hud-mark {
+  font-size: 1.4em;
+  opacity: 0.85;
+  text-shadow: 0 0 18px rgba(120, 200, 255, 0.6);
+  animation: bob 6s ease-in-out infinite;
+}
+.hud-name {
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(1.1rem, 2.4vw, 1.55rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
+.hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.hud-clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+  font-weight: 400;
+}
+.hud-mode {
+  font-size: 0.74rem;
+  letter-spacing: 0.18em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  opacity: 0.92;
+  min-width: 3.2em;
+  text-align: center;
+  transition:
+    color 0.8s ease,
+    border-color 0.8s ease,
+    background 0.8s ease;
+}
+@media (max-width: 640px) {
+  .hud-mode {
+    display: none;
+  }
+}
+
+/* 时间流速按钮：文字型，与 hud-mode 风格一致；加速时点亮 */
+.time-scale-btn {
+  font-family: inherit;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  color: var(--hud-fg-dim);
+  cursor: pointer;
+  min-width: 3em;
+  text-align: center;
+  transition:
+    color 0.3s ease,
+    border-color 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.4s ease;
+}
+.time-scale-btn:hover {
+  color: var(--hud-fg);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+.time-scale-btn:active {
+  transform: scale(0.94);
+}
+.time-scale-btn.is-fast {
+  color: #fff;
+  border-color: rgba(255, 220, 150, 0.7);
+  background: rgba(190, 150, 70, 0.45);
+  box-shadow:
+    0 0 14px rgba(255, 200, 110, 0.55),
+    inset 0 0 8px rgba(255, 230, 160, 0.3);
+}
+.time-scale-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .time-scale-btn {
+    padding: 3px 8px;
+    min-width: 2.6em;
+  }
+}
+
+.theme-toggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--hud-fg);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.theme-toggle:hover {
+  transform: translateY(-2px) rotate(8deg);
+  background: var(--glass-strong);
+  box-shadow: 0 8px 22px -8px rgba(120, 200, 255, 0.5);
+}
+.theme-toggle:active {
+  transform: translateY(0) scale(0.94);
+}
+/* 主题图标三态：白天=太阳，黄昏=半日落，夜晚=月亮。
+   三个 SVG 绝对定位堆叠于按钮中心，按 data-period 切换显隐；
+   data-period 由 app.js 写入真实时段（day/dusk/night），auto 模式下也写实际值。 */
+.theme-toggle svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transition:
+    transform 0.5s cubic-bezier(0.4, 1.6, 0.5, 1),
+    opacity 0.4s ease;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+}
+body[data-period="day"] .ico-sun {
+  transform: translate(-50%, -50%) scale(1) rotate(0);
+  opacity: 1;
+}
+body[data-period="dusk"] .ico-dusk {
+  transform: translate(-50%, -50%) scale(1) rotate(0);
+  opacity: 1;
+}
+body[data-period="night"] .ico-moon {
+  transform: translate(-50%, -50%) scale(1) rotate(0);
+  opacity: 1;
+}
+
+/* 自动模式徽标（小圆环） */
+.auto-badge {
+  position: absolute;
+  inset: auto auto -3px -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid #bfe6ff;
+  background: #4a9fd6;
+  box-shadow: 0 0 8px rgba(74, 159, 214, 0.9);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+body[data-mode="auto"] .auto-badge {
+  opacity: 1;
+}
+
+/* ================= 天气开关（雨 / 闪电） ================= */
+.weather-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--hud-fg-dim);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  position: relative;
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.4s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+.weather-btn svg {
+  display: block;
+  transition: transform 0.4s cubic-bezier(0.4, 1.6, 0.5, 1);
+}
+.weather-btn:hover {
+  transform: translateY(-2px);
+  background: var(--glass-strong);
+  color: var(--hud-fg);
+}
+.weather-btn:hover svg {
+  transform: scale(1.08);
+}
+.weather-btn:active {
+  transform: translateY(0) scale(0.94);
+}
+
+/* 激活态：按钮点亮 + 发光 */
+.weather-btn.is-active {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+#weather-rain.is-active {
+  background: rgba(74, 159, 214, 0.55);
+  box-shadow:
+    0 0 18px rgba(74, 159, 214, 0.7),
+    inset 0 0 10px rgba(150, 220, 255, 0.4);
+  color: #eaf6ff;
+}
+#weather-lightning.is-active {
+  background: rgba(190, 150, 70, 0.5);
+  box-shadow:
+    0 0 18px rgba(255, 220, 130, 0.7),
+    inset 0 0 10px rgba(255, 230, 160, 0.4);
+  color: #fff7e0;
+}
+
+/* 自动态徽标：小圆环，仅 is-auto 时显示，区别于"立即"态 */
+.weather-badge {
+  position: absolute;
+  inset: auto auto -3px -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #4a9fd6;
+  box-shadow: 0 0 6px rgba(74, 159, 214, 0.9);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+#weather-lightning .weather-badge {
+  background: #c9a14a;
+  box-shadow: 0 0 6px rgba(255, 220, 130, 0.9);
+}
+.weather-btn.is-auto .weather-badge {
+  opacity: 1;
+}
+
+/* 闪电激活时图标偶尔闪烁，呼应闪电的随机性 */
+#weather-lightning.is-active .ico-bolt {
+  animation: bolt-pulse 3.2s ease-in-out infinite;
+}
+@keyframes bolt-pulse {
+  0%, 46%, 54%, 100% { filter: brightness(1); }
+  49%, 51% { filter: brightness(2); }
+}
+
+/* ================= 中央标语 ================= */
+.tagline {
+  position: fixed;
+  z-index: 10;
+  top: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  width: 92%;
+}
+.tagline-title {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 400;
+  font-size: clamp(2rem, 6vw, 3.6rem);
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(180, 220, 255, 0.7)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 4px 22px rgba(0, 0, 0, 0.25));
+}
+.tagline-sub {
+  margin-top: 10px;
+  font-size: clamp(0.72rem, 1.6vw, 0.9rem);
+  letter-spacing: 0.22em;
+  opacity: 0.78;
+  font-weight: 300;
+}
+
+/* ================= 浮岛卡片 ================= */
+.islands {
+  position: fixed;
+  z-index: 15;
+  inset: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(20px, 4vw, 56px);
+  perspective: 1100px;
+  perspective-origin: 50% 62%;
+  padding: 23vh clamp(16px, 5vw, 40px) 10vh;
+  pointer-events: none; /* 让画布接收水波事件，卡片自身重新打开 */
+}
+.islands .island {
+  pointer-events: auto;
+}
+
+.island {
+  --bob-dur: 7s;
+  --bob-delay: 0s;
+  --raft-tilt: -0.8deg;
+  width: clamp(150px, 22vw, 210px);
+  height: clamp(245px, 32vh, 292px);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  animation: none;
+  transition: filter 0.28s ease-out, opacity 0.4s ease;
+  filter: drop-shadow(0 22px 28px rgba(6, 30, 60, 0.38));
+  will-change: transform, left, top;
+}
+.island.is-css-float {
+  animation: water-drift var(--bob-dur) ease-in-out infinite;
+  animation-delay: var(--bob-delay);
+}
+.island[data-type="blog"] {
+  --raft-tilt: -1.2deg;
+}
+.island[data-type="books"] {
+  --raft-tilt: 1.1deg;
+}
+
+.island-card {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  transform: rotateX(9deg) rotateZ(var(--raft-tilt));
+  transform-origin: 50% 100%;
+  transform-style: preserve-3d;
+  transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: transform;
+}
+.island-card::before {
+  /* 底部湿润高光：水面反光打在卡片底缘，强化"卡片浸在水里"的拟物感 */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(150, 220, 248, 0) 0%,
+    rgba(130, 205, 240, 0.32) 70%,
+    rgba(110, 190, 230, 0.42) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 0 0 18px 18px;
+  transition: opacity 0.3s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .island:hover {
+    filter: drop-shadow(0 34px 38px rgba(6, 30, 60, 0.5));
+    z-index: 16;
+  }
+  .island:hover .island-card {
+    transform: translateY(-7px) rotateX(5deg) rotateZ(var(--raft-tilt))
+      scale(1.025);
+  }
+  .island:hover .island-card::before {
+    opacity: 0.32; /* 悬浮离开水面 → 湿润高光变淡 */
+  }
+  .island:hover::before {
+    opacity: 0.4; /* 接触阴影也变虚 */
+    filter: blur(11px);
+  }
+  .island:hover .island-go {
+    transform: rotate(-45deg) translateX(2px);
+  }
+}
+.island:active .island-card {
+  transform: translateY(-3px) rotateX(7deg) rotateZ(var(--raft-tilt))
+    scale(0.985);
+}
+
+/* 卡片顶部彩条 */
+.island-stripe {
+  display: none;
+}
+
+/* 卡片视觉区（每种站点不同插画） */
+.island-visual {
+  flex: 1;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 18px 16px 8px;
+  overflow: visible;
+  perspective: 700px;
+  transform-style: preserve-3d;
+}
+
+/* —— Blog 视觉：一张文章卡 —— */
+.vis-blog {
+  color: rgba(255, 255, 255, 0.92);
+}
+.vis-blog .paper {
+  width: 86%;
+  height: 88%;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92),
+    rgba(238, 246, 255, 0.86)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 7px 7px 5px 5px;
+  padding: 12px 11px;
+  box-shadow:
+    0 14px 18px -11px rgba(10, 30, 60, 0.68),
+    7px 7px 0 -5px rgba(225, 239, 247, 0.66),
+    10px 10px 12px -10px rgba(10, 30, 60, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transform: translateZ(17px) rotateX(4deg) rotate(-3.5deg);
+  transform-origin: 50% 100%;
+  transform-style: preserve-3d;
+}
+.vis-blog .paper::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 7px -8px -8px 7px;
+  border: 1px solid rgba(223, 238, 247, 0.78);
+  border-radius: 5px;
+  background: linear-gradient(180deg, #eef6fb, #d9e8f0);
+  transform: translateZ(-8px) rotate(4deg);
+  box-shadow: 0 8px 14px -10px rgba(10, 30, 60, 0.7);
+}
+.vis-blog .paper::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(
+    135deg,
+    rgba(206, 226, 237, 0.95) 0 48%,
+    rgba(255, 255, 255, 0.2) 49%
+  );
+  clip-path: polygon(0 0, 100% 100%, 100% 0);
+  opacity: 0.88;
+}
+.vis-blog .paper .line {
+  height: 4px;
+  border-radius: 2px;
+  background: #b9d4e8;
+}
+.vis-blog .paper .line.title {
+  height: 8px;
+  width: 62%;
+  background: var(--accent, #4a9fd6);
+  margin-bottom: 4px;
+}
+.vis-blog .paper .line.s {
+  width: 92%;
+}
+.vis-blog .paper .line.m {
+  width: 78%;
+}
+.vis-blog .paper .line.t {
+  width: 50%;
+}
+.vis-blog .paper .pic {
+  height: 26%;
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 42%),
+    linear-gradient(135deg, #9fd3f0, #4a9fd6 58%, #2f729c);
+  margin: 4px 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+.vis-blog .paper .tag {
+  align-self: flex-start;
+  font-size: 7px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: rgba(74, 159, 214, 0.18);
+  color: #2a6c9a;
+  letter-spacing: 0.1em;
+}
+
+/* —— Books 视觉：书堆 —— */
+.vis-books {
+  color: rgba(255, 255, 255, 0.92);
+}
+.vis-books .stack {
+  width: 80%;
+  height: 86%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  transform: translateZ(18px) rotateX(12deg) rotateZ(-2deg);
+  transform-style: preserve-3d;
+}
+.vis-books .bk {
+  height: 20%;
+  border-radius: 3px 6px 6px 3px;
+  position: relative;
+  box-shadow:
+    0 6px 14px -8px rgba(10, 30, 60, 0.6),
+    inset 6px 0 0 rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.9);
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  overflow: visible;
+}
+.vis-books .bk::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 12%;
+  bottom: 12%;
+  width: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateZ(2px);
+}
+.vis-books .bk::after {
+  content: "";
+  position: absolute;
+  right: 3%;
+  top: 13%;
+  bottom: 13%;
+  width: 15%;
+  border-radius: 0 3px 3px 0;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 246, 218, 0.82) 0 1px,
+    rgba(194, 157, 112, 0.58) 1px 2px
+  );
+  transform: skewY(-2deg) translateZ(1px);
+  opacity: 0.82;
+}
+.vis-books .bk:nth-child(1) {
+  width: 92%;
+  background: linear-gradient(90deg, #d98b6a, #c9754f);
+  transform: rotate(-1.5deg);
+}
+.vis-books .bk:nth-child(2) {
+  width: 100%;
+  background: linear-gradient(90deg, #5a8fb8, #3f6f96);
+}
+.vis-books .bk:nth-child(3) {
+  width: 86%;
+  background: linear-gradient(90deg, #8a7bb8, #6a5b9a);
+  transform: rotate(1.2deg);
+}
+.vis-books .bk:nth-child(4) {
+  width: 96%;
+  background: linear-gradient(90deg, #6ab08a, #4a9070);
+}
+.vis-books .bookmark {
+  position: absolute;
+  top: -6%;
+  left: 56%;
+  width: 10px;
+  height: 30%;
+  background: rgba(255, 255, 255, 0.85);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  opacity: 0.9;
+  transform: translateZ(16px) rotate(2deg);
+}
+
+/* 卡片底部信息 */
+.island-foot {
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 4px 2px 3px;
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.island-name {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.18rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(6, 30, 60, 0.4);
+}
+.island-desc {
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+.island-go {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent, #4a9fd6);
+  color: #fff;
+  box-shadow: 0 4px 12px -4px var(--accent, #4a9fd6);
+  transition: transform 0.35s cubic-bezier(0.4, 1.6, 0.5, 1);
+}
+.island-go svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* 水面接触阴影 + 被风打散的倒影 */
+.island::before {
+  content: "";
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: -6%;
+  height: 25%;
+  z-index: -2;
+  pointer-events: none;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(12, 57, 77, 0.48) 0 22%,
+      transparent 52%
+    ),
+    radial-gradient(
+      ellipse at center,
+      transparent 35%,
+      rgba(132, 220, 235, 0.24) 39% 41%,
+      transparent 47%
+    );
+  filter: blur(8px);
+  opacity: 0.78;
+  transform: translateZ(-18px) scaleY(0.34);
+  transition:
+    opacity 0.3s ease,
+    filter 0.3s ease;
+}
+.island::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: -24%;
+  height: 31%;
+  background:
+    linear-gradient(180deg, rgba(176, 222, 238, 0.27), rgba(176, 222, 238, 0)),
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(146, 218, 234, 0.28),
+      transparent 68%
+    );
+  border-radius: 46% 54% 50% 50%;
+  filter: blur(8px) saturate(0.72);
+  transform: translateZ(-11px) scaleY(-0.48) skewX(var(--raft-tilt));
+  opacity: 0.46;
+  z-index: -1;
+  mix-blend-mode: screen;
+}
+
+/* 浮动呼吸动画 */
+@keyframes water-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 2px, 0) rotateZ(calc(var(--raft-tilt) - 0.35deg))
+      rotateX(0.8deg);
+  }
+  28% {
+    transform: translate3d(-1px, -5px, 0)
+      rotateZ(calc(var(--raft-tilt) + 0.2deg)) rotateX(-0.8deg);
+  }
+  58% {
+    transform: translate3d(1px, -10px, 0)
+      rotateZ(calc(var(--raft-tilt) + 0.6deg)) rotateX(1.1deg);
+  }
+  82% {
+    transform: translate3d(0, -4px, 0) rotateZ(calc(var(--raft-tilt) - 0.1deg))
+      rotateX(-0.5deg);
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* ================= 底部提示 ================= */
+.footer-hint {
+  position: fixed;
+  z-index: 10;
+  bottom: clamp(10px, 3vh, 26px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  opacity: 0.5;
+  font-weight: 300;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* 视角切换面板：左下角竖排小按钮 */
+.view-panel {
+  position: fixed;
+  z-index: 14;
+  bottom: clamp(10px, 3vh, 26px);
+  left: clamp(10px, 3vw, 22px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+.view-btn {
+  pointer-events: auto;
+  font-family: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  padding: 5px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  color: var(--hud-fg-dim, rgba(255, 255, 255, 0.7));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    background 0.2s,
+    transform 0.12s;
+}
+.view-btn:hover {
+  color: var(--hud-fg);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+.view-btn:active {
+  transform: scale(0.94);
+}
+.view-btn.is-active {
+  color: #fff;
+  border-color: rgba(150, 200, 255, 0.7);
+  background: rgba(80, 140, 200, 0.45);
+  box-shadow: 0 0 14px rgba(150, 200, 255, 0.45);
+}
+@media (max-width: 640px) {
+  .view-panel {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-width: 60vw;
+  }
+  .view-btn {
+    padding: 4px 10px;
+  }
+}
+
+/* ================= 昼夜文字色适配 ================= */
+/* 夜晚文字更亮 */
+body[data-theme="night"] {
+  --hud-fg: rgba(228, 240, 255, 0.95);
+}
+body[data-theme="day"] {
+  --hud-fg: rgba(11, 31, 51, 0.88);
+  --hud-fg-dim: rgba(11, 31, 51, 0.6);
+  --glass: rgba(255, 255, 255, 0.35);
+  --glass-border: rgba(255, 255, 255, 0.55);
+}
+
+/* 白天标语颜色加深，提升对比度 */
+body[data-theme="day"] .tagline-title {
+  background: linear-gradient(
+    180deg,
+    rgba(11, 40, 71, 0.92),
+    rgba(30, 90, 138, 0.85)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+body[data-theme="day"] .tagline-sub {
+  opacity: 0.8;
+  color: #0b2847;
+}
+body[data-theme="day"] .footer-hint {
+  color: #0b2847;
+}
+
+/* 白天卡片：水面较亮，使用更白净的毛玻璃 + 深色文字 */
+body[data-theme="day"] .island-card {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+body[data-theme="day"] .island-name {
+  color: #0b2847;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.5);
+}
+body[data-theme="day"] .island-desc {
+  color: rgba(11, 40, 71, 0.62);
+}
+body[data-theme="day"] .island::after {
+  background: linear-gradient(
+    180deg,
+    rgba(120, 180, 220, 0.4),
+    rgba(120, 180, 220, 0)
+  );
+}
+
+/* ================= 黄昏：暖色玻璃 + 暖白文字 =================
+   黄昏海面天空偏橙红，背景已较暗 → 用暖白浅色文字，与橙红海面协调 */
+body[data-theme="dusk"] {
+  --hud-fg: rgba(255, 240, 220, 0.95);
+  --hud-fg-dim: rgba(255, 220, 190, 0.66);
+  --glass: rgba(255, 200, 150, 0.18);
+  --glass-strong: rgba(255, 200, 150, 0.28);
+  --glass-border: rgba(255, 210, 170, 0.42);
+}
+body[data-theme="dusk"] .tagline-title {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 246, 232, 0.96),
+    rgba(255, 178, 128, 0.82)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+body[data-theme="dusk"] .tagline-sub {
+  color: #ffe6cc;
+  opacity: 0.82;
+}
+body[data-theme="dusk"] .footer-hint {
+  color: #ffd9b3;
+}
+body[data-theme="dusk"] .island-card {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+body[data-theme="dusk"] .island-name {
+  color: #fff5e0;
+  text-shadow: 0 2px 10px rgba(60, 20, 0, 0.5);
+}
+body[data-theme="dusk"] .island-desc {
+  color: rgba(255, 220, 180, 0.78);
+}
+body[data-theme="dusk"] .island::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 190, 140, 0.36),
+    rgba(255, 190, 140, 0)
+  );
+}
+
+/* 夜晚卡片：毛玻璃更通透，文字偏冷白 */
+body[data-theme="night"] .island-name {
+  color: #f2f8ff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+body[data-theme="night"] .island-desc {
+  color: rgba(220, 235, 255, 0.7);
+}
+
+/* 主题切换时的平滑过渡 */
+body,
+.island-card,
+.island-name,
+.island-desc,
+.tagline-title,
+.tagline-sub,
+.footer-hint,
+.hud-name,
+.hud-clock,
+.theme-toggle {
+  transition-property:
+    background,
+    color,
+    border-color,
+    box-shadow,
+    -webkit-text-fill-color;
+  transition-duration: 0.8s;
+}
+
+/* ================= 响应式 ================= */
+@media (max-width: 640px) {
+  .tagline {
+    top: 11%;
+  }
+  .tagline-title {
+    letter-spacing: 0.28em;
+  }
+  .islands {
+    gap: 18px;
+    padding-top: 26vh;
+  }
+  .island {
+    width: clamp(128px, 42vw, 168px);
+  }
+  .hud-clock {
+    display: none;
+  }
+}
+@media (max-height: 560px) {
+  .tagline {
+    top: 8%;
+  }
+  .islands {
+    padding-top: 18vh;
+  }
+}
+
+/* 减弱动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .island,
+  .hud-mark {
+    animation: none !important;
+  }
+}
