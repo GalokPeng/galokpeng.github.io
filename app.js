@@ -12,7 +12,7 @@
       type: "blog", // 视觉风格：blog | books | link
       name: "Blog",
       desc: "BLOG · 思绪与札记",
-      url: "https://blog.example.com",
+      url: "https://blog.galok.cn",
       target: "_self", // _self 当前页跳转 | _blank 新标签页
       accent: "#4a9fd6",
     },
@@ -20,7 +20,7 @@
       type: "books",
       name: "Books",
       desc: "BOOKS · 书海漫游",
-      url: "https://books.example.com",
+      url: "https://books.galok.cn",
       target: "_self",
       accent: "#8a7bb8",
     },
