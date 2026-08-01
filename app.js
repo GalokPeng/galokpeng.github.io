@@ -24,14 +24,14 @@
       target: "_blank",
       accent: "#8a7bb8",
     },
-      {
+    {
       type: "share",
       name: "Galok's 热爱分享",
       desc: "Share · 海量资源",
       url: "https://pgxcg.qzz.io",
       target: "_blank",
       accent: "#8a2bb1",
-      },
+    },
   ];
 
   /* ============== ② 页面标题（左上角品牌名） ============== */
@@ -41,7 +41,6 @@
 
   const islandsEl = document.getElementById("islands");
   const nameEl = document.getElementById("site-name");
-  const toggleBtn = document.getElementById("theme-toggle");
   const clockEl = document.getElementById("clock");
 
   if (nameEl) nameEl.textContent = SITE_NAME;
@@ -112,57 +111,20 @@
     });
   }
 
-  /* ---------- 主题：auto → day → dusk → night → auto ---------- */
-  const MODES = ["auto", "day", "dusk", "night"];
-  const MODE_LABEL = { auto: "自动", day: "白天", dusk: "黄昏", night: "夜晚" };
-  let modeIdx = 0;
-  const modeLabelEl = document.getElementById("hud-mode");
-
-  function curMode() {
-    return MODES[modeIdx];
-  }
-
-  // 真实时段由海水引擎按太阳高度角判定，不再使用固定的钟点切分。
-  function effectiveTheme() {
-    const m = curMode();
-    if (m !== "auto") return m; // 手动模式直接采用
+  /* ---------- 主题：始终跟随真实天文时段（day/dusk/night） ---------- */
+  // 时段由海水引擎按太阳高度角判定，CSS 根据真实时段切换卡片配色。
+  // 固定时段切换已移除，太阳月亮始终按真实天文轨迹运行。
+  function syncTheme() {
+    let eff = "day";
     if (window.GalokOcean && window.GalokOcean.period)
-      return window.GalokOcean.period;
-    const h = new Date().getHours();
-    return h >= 6 && h < 18 ? "day" : "night";
-  }
-
-  function applyTheme() {
-    const m = curMode();
-    // 让海水引擎随手动选择平滑翻转整个场景（auto=跟随地点天文时间）
-    if (window.GalokOcean && window.GalokOcean.setOverride)
-      window.GalokOcean.setOverride(m);
-    const eff = effectiveTheme(); // day | dusk | night
+      eff = window.GalokOcean.period;
+    else {
+      const h = new Date().getHours();
+      eff = h >= 6 && h < 18 ? "day" : "night";
+    }
     document.body.setAttribute("data-theme", eff);
     document.body.setAttribute("data-period", eff);
-    document.body.setAttribute("data-mode", m === "auto" ? "auto" : "manual");
-    const badge = toggleBtn ? toggleBtn.querySelector(".auto-badge") : null;
-    if (badge) badge.style.opacity = m === "auto" ? "1" : "0";
-    if (modeLabelEl) modeLabelEl.textContent = MODE_LABEL[m];
-    if (toggleBtn) {
-      toggleBtn.setAttribute("title", `主题：${MODE_LABEL[m]} · 点击切换`);
-      toggleBtn.setAttribute("aria-label", `切换主题，当前 ${MODE_LABEL[m]}`);
-    }
-    // 手动模式相机锁朝南（等价自动视角），视角按钮回到“自动”并清除视角锁定
-    if (m !== "auto" && curView !== "auto") {
-      curView = "auto";
-      syncViewButtons();
-      if (window.GalokOcean && window.GalokOcean.setView)
-        window.GalokOcean.setView("auto");
-    }
   }
-
-  function cycleMode() {
-    modeIdx = (modeIdx + 1) % MODES.length;
-    applyTheme();
-    applyTimeScale(); // 切换主题后同步时间流速按钮的可用状态
-  }
-  if (toggleBtn) toggleBtn.addEventListener("click", cycleMode);
 
   /* ---------- 天气开关：雨 / 闪电（三态：关闭 → 立即 → 自动 → 关闭） ---------- */
   const rainBtn = document.getElementById("weather-rain");
@@ -214,31 +176,20 @@
       applyWeather();
     });
 
-  /* ---------- 时间流速：1× → 10× → 100× → 1000× → 1×（仅 auto 模式生效） ---------- */
+  /* ---------- 时间流速：1× → 100× → 1000× → 10000× → 1× ---------- */
   const timeScaleBtn = document.getElementById("time-scale");
   const TIME_SCALES = [1, 100, 1000, 10000];
   let timeScaleIdx = 0;
   function applyTimeScale() {
-    const isAuto = curMode() === "auto";
-    // 非 auto 模式强制 1×（手动模式跳固定预览时刻，加速无意义）
-    let scale;
-    if (isAuto) {
-      scale = TIME_SCALES[timeScaleIdx];
-    } else {
-      scale = 1;
-      timeScaleIdx = 0;
-    }
+    const scale = TIME_SCALES[timeScaleIdx];
     if (window.GalokOcean && window.GalokOcean.setTimeScale)
       window.GalokOcean.setTimeScale(scale);
     if (timeScaleBtn) {
       timeScaleBtn.textContent = scale + "×";
-      timeScaleBtn.classList.toggle("is-fast", scale > 1 && isAuto);
-      timeScaleBtn.disabled = !isAuto; // 非 auto 模式禁用
+      timeScaleBtn.classList.toggle("is-fast", scale > 1);
       timeScaleBtn.setAttribute(
         "title",
-        isAuto
-          ? `时间流速：${scale}×${scale > 1 ? "（加速昼夜）" : "（真实时间）"}`
-          : "时间流速仅自动昼夜模式可用",
+        `时间流速：${scale}×${scale > 1 ? "（加速昼夜）" : "（真实时间）"}`,
       );
       timeScaleBtn.setAttribute("aria-label", `时间流速 ${scale} 倍，点击切换`);
     }
@@ -249,43 +200,53 @@
       applyTimeScale();
     });
 
-  /* ---------- 视角切换：自动 / 日出 / 日落 / 月升 / 月落（仅 auto 模式） ---------- */
-  const viewPanel = document.getElementById("view-panel");
+  /* ---------- 视角切换：自动 → 日出 → 日落 → 月升 → 月落 → 自动（单按钮循环） ---------- */
+  const viewToggleBtn = document.getElementById("view-toggle");
+  const VIEWS = ["auto", "sunrise", "sunset", "moonrise", "moonset"];
+  const VIEW_LABEL = {
+    auto: "自动",
+    sunrise: "日出",
+    sunset: "日落",
+    moonrise: "月升",
+    moonset: "月落",
+  };
+  const VIEW_DESC = {
+    auto: "自动视角：自由拖动",
+    sunrise: "跳到日出时刻并对准东方",
+    sunset: "跳到日落时刻并对准西方",
+    moonrise: "跳到月升时刻并对准月亮",
+    moonset: "跳到月落时刻并对准月亮",
+  };
+  let viewIdx = 0;
   let curView = "auto";
-  function syncViewButtons() {
-    if (!viewPanel) return;
-    viewPanel.querySelectorAll(".view-btn").forEach((b) => {
-      b.classList.toggle("is-active", b.dataset.view === curView);
-    });
+  function syncViewButton() {
+    if (!viewToggleBtn) return;
+    viewToggleBtn.textContent = VIEW_LABEL[curView];
+    viewToggleBtn.classList.toggle("is-active", curView !== "auto");
+    viewToggleBtn.setAttribute("title", VIEW_DESC[curView]);
+    viewToggleBtn.setAttribute(
+      "aria-label",
+      `切换视角，当前 ${VIEW_LABEL[curView]}`,
+    );
   }
   function applyView(view) {
-    // 视角按钮只在 auto 模式生效；非 auto 时先切回 auto
-    if (curMode() !== "auto") {
-      modeIdx = 0;
-      applyTheme();
-      applyTimeScale();
-    }
     curView = view;
+    viewIdx = VIEWS.indexOf(view);
     if (window.GalokOcean && window.GalokOcean.setView)
       window.GalokOcean.setView(view);
-    syncViewButtons();
+    syncViewButton();
   }
-  if (viewPanel)
-    viewPanel.addEventListener("click", (e) => {
-      const btn = e.target.closest(".view-btn");
-      if (!btn) return;
-      applyView(btn.dataset.view);
+  if (viewToggleBtn)
+    viewToggleBtn.addEventListener("click", () => {
+      viewIdx = (viewIdx + 1) % VIEWS.length;
+      applyView(VIEWS[viewIdx]);
     });
-  // 拖动旋转视角时，视为切回“自动”自由视角（取消日出/日落等对准）
+  // 拖动旋转视角时，视为切回"自动"自由视角（取消日出/日落等对准）
   const oceanCanvas = document.getElementById("ocean-canvas");
   if (oceanCanvas)
     oceanCanvas.addEventListener("pointerdown", () => {
       if (curView !== "auto") {
-        curView = "auto";
-        syncViewButtons();
-        // 同步清除 water.js 的视角锁定与时间偏移，让画面退回真实时间
-        if (window.GalokOcean && window.GalokOcean.setView)
-          window.GalokOcean.setView("auto");
+        applyView("auto");
       }
     });
 
@@ -338,11 +299,7 @@
 
       if (canProject) {
         // 卡片世界坐标：水面漂移 + 水面高度；投影到屏幕，随相机姿态变化
-        const proj = ocean.projectWorld(
-          x + surface.driftX,
-          surface.height,
-          z,
-        );
+        const proj = ocean.projectWorld(x + surface.driftX, surface.height, z);
         if (!proj.visible) {
           el.style.opacity = "0";
           el.style.pointerEvents = "none";
@@ -398,10 +355,8 @@
     requestAnimationFrame(updateBuoyancy);
   }
 
-  // auto 模式下，每 20s 复查一次实际昼夜
-  setInterval(() => {
-    if (curMode() === "auto") applyTheme();
-  }, 20000);
+  // 每 20s 复查一次实际昼夜，同步卡片配色
+  setInterval(syncTheme, 20000);
 
   /* ---------- 观测点当地时钟 ---------- */
   function tickClock() {
@@ -421,7 +376,7 @@
   /* ---------- 启动 ---------- */
   function init() {
     render();
-    applyTheme();
+    syncTheme();
     applyWeather(); // 同步按钮初始状态（默认 auto 随机）
     applyTimeScale(); // 同步时间流速按钮初始状态（默认 1×）
     tickClock();

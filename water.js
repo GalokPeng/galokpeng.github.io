@@ -38,7 +38,6 @@
       [1.18, 0.56, 0.032, 1.7],
       [-1.62, 0.92, 0.022, 5.3],
     ];
-    let fallbackOverride = "auto";
     let fallbackTime = 0;
     const fallbackSampleSurface = (x, z, t) => {
       let height = 0,
@@ -60,8 +59,8 @@
       return { height, slopeX, slopeZ, driftX, driftZ };
     };
     window.GalokOcean = {
-      setOverride(m) {
-        if (["auto", "day", "dusk", "night"].includes(m)) fallbackOverride = m;
+      setOverride() {
+        // 固定时段切换已移除，始终使用真实天文时间。保留空函数兼容旧调用。
       },
       get isNight() {
         return this.period === "night";
@@ -70,7 +69,6 @@
         return this.period === "night" ? 1 : this.period === "dusk" ? 0.35 : 0;
       },
       get period() {
-        if (fallbackOverride !== "auto") return fallbackOverride;
         const hour = new Date().getHours() + new Date().getMinutes() / 60;
         return hour >= 5.75 && hour < 18.75
           ? "day"
@@ -283,9 +281,11 @@
       if (flash < 0.25) return 0.0;
       // 闪电类型：0=云内短闪(35%)，1=云到水面(40%)，2=云底短劈(25%)
       float typeRoll = hash13(vec3(seed, 100.0, 50.0));
-      // 位置多样性：xz 范围大，远处(z大)也可见，营造空间纵深
-      float sx = (hash13(vec3(seed, 1.1, 2.2)) - 0.5) * 12.0;     // -6 到 6
-      float sz = 2.5 + hash13(vec3(seed, 3.3, 4.4)) * 9.5;         // 2.5-12（远处）
+      // 位置全方位分布（极坐标 0-2π）：旋转视角到任何方向都能看到闪电
+      float boltAngle = hash13(vec3(seed, 1.1, 2.2)) * 6.2831853;
+      float boltDist = 3.0 + hash13(vec3(seed, 3.3, 4.4)) * 9.5;   // 3-12.5
+      float sx = sin(boltAngle) * boltDist;
+      float sz = cos(boltAngle) * boltDist;
       float startY = 5.0 + hash13(vec3(seed, 11.1, 12.2)) * 1.8;   // 5.0-6.8 云层内
       vec3 p0 = vec3(sx, startY, sz);
       // 终点 y 由类型决定
@@ -295,7 +295,7 @@
       else endY = 2.5 + hash13(vec3(seed, 20.0, 21.0)) * 1.0;                   // 云底短劈: 2.5-3.5
       // 5 段折线，y 等距下降，xz 随机偏移（远处偏移大，锯齿更粗）
       float segDy = (p0.y - endY) / 5.0;
-      float off = 0.8 + sz * 0.12;
+      float off = 0.8 + boltDist * 0.12;
       vec3 p1 = p0 + vec3((hash13(vec3(seed,5.1,1.0))-0.5)*1.2*off, -segDy, (hash13(vec3(seed,6.1,1.0))-0.5)*0.9*off);
       vec3 p2 = p1 + vec3((hash13(vec3(seed,5.1,2.0))-0.5)*1.4*off, -segDy, (hash13(vec3(seed,6.1,2.0))-0.5)*1.0*off);
       vec3 p3 = p2 + vec3((hash13(vec3(seed,5.1,3.0))-0.5)*1.4*off, -segDy, (hash13(vec3(seed,6.1,3.0))-0.5)*1.0*off);
@@ -345,6 +345,18 @@
       vec3 b2e = b2s + vec3((hash13(vec3(seed,8.1,2.0))-0.5)*1.8*off, -1.1, (hash13(vec3(seed,9.1,2.0))-0.5)*1.6*off);
       branches += smoothstep(0.020, 0.0, raySegDist(ro, rd, b2s, b2e)) * 0.8 * branchMask;
       return (trunkBright + branches) * flash;
+    }
+
+    // 多道闪电：每次闪光生成 1-3 道闪电，各自独立种子 → 不同方位与形态。
+    // 主闪电必现，副闪电按概率出现且更暗，确保旋转到任何方向都能看到闪电。
+    // 种子是 uniform，分支判断对全画面一致，GPU 无分支发散开销。
+    float lightningBolts(vec3 ro, vec3 rd, float seed, float flash){
+      float result = lightning3D(ro, rd, seed, flash);
+      float r2 = hash13(vec3(seed, 99.0, 88.0));
+      if (r2 > 0.45) result += lightning3D(ro, rd, seed + 7.3, flash) * 0.72;
+      float r3 = hash13(vec3(seed, 55.0, 44.0));
+      if (r3 > 0.7) result += lightning3D(ro, rd, seed + 13.7, flash) * 0.55;
+      return result;
     }
 
     vec2 octahedralMap(vec3 n){
@@ -449,6 +461,11 @@
       return h;
     }
 
+    // 日月方向的云遮挡量（在 main 中一次性计算，供 skyColor 与水面高光共用）。
+    // cloudField 返回 0~1：0=晴空，1=厚云。用于让云层（白云、乌云）按密度遮挡日月。
+    float sunCloudOcc = 0.0;
+    float moonCloudOcc = 0.0;
+
     vec3 skyColor(vec3 dir, float t){
       float y = clamp(dir.y, 0.0, 1.0);
       float horizon = pow(1.0 - y, 2.2);
@@ -508,31 +525,52 @@
         vec2 dirScreen = vec2(dirCam.x * dirInvZ / 1.15, dirCam.y * dirInvZ + uHorizonUv);
         float sunInvZ = 1.05 / sunCam.z;
         vec2 sunScreen = vec2(sunCam.x * sunInvZ / 1.15, sunCam.y * sunInvZ + uHorizonUv);
-        float sunScreenR = sunInvZ * 0.0524;   // 角半径 3° 的屏幕投影
+        float sunScreenR = sunInvZ * 0.0366;   // 角半径 2.1° 的屏幕投影（真实 0.27°，7.8× 兼顾可见性）
         float sunScreenDist = length(dirScreen - sunScreen);
         sunDisk = (1.0 - smoothstep(sunScreenR * 0.82, sunScreenR * 1.05, sunScreenDist)) * uSunVisibility;
       }
-      col += uCelestialColor * sunDisk * 7.2;
+      // 云层遮挡日面：厚云（sunCloudOcc→1）遮挡 92%，薄云按密度渐变。乌云时遮挡更强。
+      float sunOcc = 1.0 - sunCloudOcc * mix(0.92, 0.98, uCloudDarken);
+      col += uCelestialColor * sunDisk * 7.2 * sunOcc;
 
       // 月面按真实太阳方向求终结线：新月、弦月、满月都由几何关系产生。
       vec3 moonReference = abs(uMoonDir.y) > 0.94 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
       vec3 moonRight = normalize(cross(moonReference, uMoonDir));
       vec3 moonUp = normalize(cross(uMoonDir, moonRight));
-      // 月面视觉半径加大到 3 倍（约 3.44°），让夜空中的月亮更显眼；位置由 computePalette 抬高保证完整可见。
-      const float moonRadius = 0.060;
+      // 月面视觉半径约 2.1°（真实 0.26°，8× 兼顾可见性）；日月视大小近乎相同，符合真实天文学。
+      const float moonRadius = 0.0366;
       vec2 moonUv = vec2(dot(dir, moonRight), dot(dir, moonUp)) / moonRadius;
       float moonR2 = dot(moonUv, moonUv);
       float moonDisk = 1.0 - smoothstep(0.965, 1.00, moonR2);
+      // antipodal 修复：球面切空间投影在 -uMoonDir 方向也映射到圆盘中心，
+      // 会在月亮正对面生成"假月亮"（月相反转、随真月亮运动）。用 dot 门控只在前半球渲染。
+      moonDisk *= smoothstep(0.0, 0.06, dot(dir, uMoonDir));
       float moonZ = sqrt(max(0.0, 1.0 - moonR2));
       vec3 moonNormal = normalize(moonRight * moonUv.x + moonUp * moonUv.y - uMoonDir * moonZ);
-      float moonLit = smoothstep(-0.055, 0.055, dot(moonNormal, uSunDir));
-      float crater = valueNoise(moonUv * 6.5 + vec2(3.7, 8.1));
-      vec3 moonAlbedo = mix(vec3(0.42, 0.46, 0.50), vec3(0.88, 0.90, 0.88), crater);
-      vec3 earthshine = vec3(0.055, 0.075, 0.115) * (1.0 - uMoonPhase);
+      // 终结线柔化：真实月面粗糙度使明暗分界有一定过渡宽度，不是硬边
+      float moonLit = smoothstep(-0.14, 0.14, dot(moonNormal, uSunDir));
+      // 双层环形山纹理：粗噪大斑（月海）+ 细噪小点（陨石坑），增强表面真实感
+      float crater1 = valueNoise(moonUv * 6.5 + vec2(3.7, 8.1));
+      float crater2 = valueNoise(moonUv * 14.0 + vec2(1.2, 5.6));
+      float crater = clamp(crater1 * 0.7 + crater2 * 0.3, 0.0, 1.0);
+      // opposition surge：满月时观测方向与光源一致，表面反向散射增强，月面更亮
+      vec3 moonAlbedo = mix(vec3(0.36, 0.40, 0.44), vec3(0.92, 0.93, 0.91), crater);
+      moonAlbedo *= 0.72 + 0.28 * uMoonPhase;
+      // 地照：地球反射阳光照亮月面暗侧，新月时最强（地球满相），满月时为零
+      vec3 earthshine = vec3(0.072, 0.092, 0.128) * (1.0 - uMoonPhase) * (1.0 - uMoonPhase);
       vec3 moonColor = mix(earthshine, moonAlbedo, moonLit);
-      col += moonColor * moonDisk * uMoonVisibility * 2.15;
+      // 低空月光大气散射：月光经厚大气层瑞利散射，短波(蓝)被散射掉，剩长波(红橙)。
+      // 月出/月落时月亮低空偏橙红，升高后变回银白（真实大气折射效应）。
+      float moonAtmo = 1.0 - smoothstep(0.0, 0.35, uMoonDir.y);
+      vec3 moonLowColor = vec3(1.0, 0.55, 0.30);
+      moonColor = mix(moonColor, moonLowColor * (moonLit * 0.7 + 0.3), moonAtmo * 0.6);
+      // 云层遮挡月面：月光较柔，薄云也能明显遮蔽；厚云遮挡 88%。
+      float moonOcc = 1.0 - moonCloudOcc * mix(0.85, 0.95, uCloudDarken);
+      col += moonColor * moonDisk * uMoonVisibility * 2.15 * moonOcc;
       float moonHalo = pow(max(dot(dir, uMoonDir), 0.0), 720.0);
-      col += vec3(0.30, 0.40, 0.56) * moonHalo * uMoonVisibility * uMoonPhase * 0.26;
+      // 月晕：低空偏暖橙晕，高空偏冷蓝晕；满月时最强
+      vec3 moonHaloColor = mix(vec3(0.55, 0.35, 0.20), vec3(0.30, 0.40, 0.56), smoothstep(0.0, 0.3, uMoonDir.y));
+      col += moonHaloColor * moonHalo * uMoonVisibility * (0.3 + 0.7 * uMoonPhase) * 0.26 * moonOcc;
 
       // 云层最后合成，因此会正确遮挡星光与日月，同时接受晨昏暖光和月光。
       vec3 cloudNight = vec3(0.025, 0.038, 0.070)
@@ -551,7 +589,9 @@
       cloudColor += vec3(1.0, 0.45, 0.15) * edgeGlow * (0.25 + 0.75 * twilight);
       // 暴风雨时乌云变暗变灰沉。
       cloudColor = mix(cloudColor, cloudColor * vec3(0.38, 0.40, 0.46), uCloudDarken);
-      float cloudOpacity = clouds * mix(0.58, 0.84, daylight);
+      // 云层不透明度：厚云接近全遮（0.95），薄云半透，让云后日月被有效遮挡。
+      // 白天云更实（0.95），黄昏/夜晚稍透（0.72）让月光微透。
+      float cloudOpacity = clouds * mix(0.72, 0.95, daylight);
       col = mix(col, cloudColor, cloudOpacity);
       // 闪电从云层内部发出：云体被瞬时从内部照亮（云越厚、越接近云底越明显）。
       // 在 mix 之后叠加，让天空与水面反射中的云层都正确接受闪电照明。
@@ -581,6 +621,10 @@
       float cy = cos(uCameraYaw),   sy = sin(uCameraYaw);
       vec3 rp = vec3(rdL.x, cp * rdL.y - sp * rdL.z, sp * rdL.y + cp * rdL.z);
       vec3 rd = normalize(vec3(cy * rp.x + sy * rp.z, rp.y, -sy * rp.x + cy * rp.z));
+
+      // 日月方向的云遮挡：一次性计算，供天空圆盘与水面高光共用（避免在 skyColor 中重复采样）
+      sunCloudOcc = cloudField(uSunDir, t);
+      moonCloudOcc = cloudField(uMoonDir, t);
 
       vec3 col;
       if (rd.y >= 0.0){
@@ -621,23 +665,23 @@
 
         // 环境月光：满月时整片水面被冷月光均匀提亮，避免夜晚水面纯黑。
         // 与镜面月光不同，这是来自天空散射的间接月光，弥漫在水面上。
-        col += vec3(0.045, 0.060, 0.090) * uMoonVisibility * uMoonPhase;
+        col += vec3(0.045, 0.060, 0.090) * uMoonVisibility * uMoonPhase * (1.0 - moonCloudOcc * 0.7);
 
         vec3 Hh = normalize(uSunDir + V);
         float ndh = max(dot(N, Hh), 0.0);
         float specCore = pow(ndh, 1100.0);
         float specShimmer = pow(ndh, 90.0);
         col += uCelestialColor * (specCore * 7.5 + specShimmer * 0.10)
-             * uSunVisibility;
+             * uSunVisibility * (1.0 - sunCloudOcc * 0.9);
 
         vec3 moonHalf = normalize(uMoonDir + V);
         float moonNdh = max(dot(N, moonHalf), 0.0);
         // 月光镜面：主高光更亮更宽（照亮水面），副光晕扩散开让整片水面泛起冷月光
         float moonSpec = pow(moonNdh, 1100.0) * 6.5 + pow(moonNdh, 90.0) * 0.12;
-        col += vec3(0.72, 0.82, 1.00) * moonSpec * uMoonVisibility * uMoonPhase;
+        col += vec3(0.72, 0.82, 1.00) * moonSpec * uMoonVisibility * uMoonPhase * (1.0 - moonCloudOcc * 0.85);
 
         float ss = max(dot(N, uSunDir), 0.0);
-        col += vec3(0.10, 0.35, 0.30) * pow(ss, 2.0) * 0.06 * uSunVisibility;
+        col += vec3(0.10, 0.35, 0.30) * pow(ss, 2.0) * 0.06 * uSunVisibility * (1.0 - sunCloudOcc * 0.9);
 
         vec3 crestLight = mix(vec3(0.42, 0.55, 0.74), uCelestialColor, uSunVisibility);
         col += crestLight * glow * 0.22;
@@ -659,8 +703,8 @@
         col += vec3(0.55, 0.65, 0.78) * rain * 0.6;
       }
       if (uFlash > 0.05){
-        float bolt = lightning3D(ro, rd, uLightningSeed, uFlash);
-        col += vec3(0.92, 0.96, 1.0) * bolt * 2.2;     // 3D 闪电折线（主干+分叉）
+        float bolt = lightningBolts(ro, rd, uLightningSeed, uFlash);
+        col += vec3(0.92, 0.96, 1.0) * bolt * 2.2;     // 3D 闪电折线（主干+分叉，多道全方位）
         col += vec3(0.82, 0.88, 1.0) * uFlash * 0.32;  // 整体瞬时加亮（降低，避免淹没折线）
       }
 
@@ -924,54 +968,70 @@
   }
   function computePalette(date) {
     const sky = astronomyAt(date);
-    if (override === "dusk") {
-      // 黄昏预览：太阳正对画面中央落下，圆盘完整可见、底边与海平线对齐。
-      // 推导：日面视觉半径约 3°；让中心仰角 ≈ 3°，底边正好落在海平线上。
-      // sunDir.y = sin(3°) ≈ 0.0523；normalize3 后仰角 ≈ 3.0°，底边贴合海平线。
-      // auto 模式仍使用真实方位，实际日落方位取决于观测点经纬度。
-      sky.sunDir = normalize3(0.0, 0.05, 0.95);
-      sky.sunElevation = Math.asin(sky.sunDir[1]);
-    }
-    if (override === "night") {
-      // 手动预览：月亮居中偏右、强制满月让月光完整照亮水面。
-      // 月面半径加大到约 3.44°，需把中心仰角抬到约 4.06°，让底边贴着海平线上方
-      // （约 0.6°）—— 完整显示且月光仍能照亮水面。
-      // auto 模式仍使用真实方位与月相，因此可能出现无月或非满月的真实夜晚。
-      sky.moonDir = normalize3(0.12, 0.068, 0.95);
-      sky.moonElevation = Math.asin(sky.moonDir[1]);
-      sky.moonPhase = 1.0; // 强制满月：圆盘完整、月光最强
-    }
-    if (override === "auto") {
-      // auto 模式：完全使用真实天文方位与高度角，太阳东升西落、月亮按真实轨迹运行。
-      // 用户通过鼠标/触摸拖动旋转视角来观察日月升落；视角按钮可跳到对应时刻并对准天体。
-    }
+    // 始终使用真实天文方位与高度角，太阳东升西落、月亮按真实轨迹运行。
+    // 用户通过鼠标/触摸拖动旋转视角来观察日月升落；视角按钮可跳到对应时刻并对准天体。
     const sunDegrees = sky.sunElevation / DEG;
     const moonDegrees = sky.moonElevation / DEG;
-    const daylight = smoothRange(-6, 11, sunDegrees);
-    const nightness = 1 - smoothRange(-12, -3, sunDegrees);
-    const twilight =
-      smoothRange(-15, -4, sunDegrees) * (1 - smoothRange(4, 14, sunDegrees));
+    // 基于真实天文时段（太阳高度角）的多层亮度模型。
+    // 真实照度随高度角近似对数变化：正午(h>55°)~10万lux最亮、h=30°~5万、
+    // h=10°~1万、黄金时刻(h=0-10°)暖橙低亮、民用/航海/天文曙暮光逐层变暗。
+    const sunH = sunDegrees;
+    // 白天地平线门控：日出/落瞬间切换昼夜基底
+    const daylight = smoothRange(-3, 5, sunH);
+    // 白天亮度梯度：正午最亮=1，h=30°≈0.5，h=10°≈0.15，h=0°≈0
+    // 让正午比上午/下午明显更亮，黄金时刻最暗（模拟照度对数关系）
+    const dayBrightness = smoothRange(2, 55, sunH);
+    // 黄金时刻：日出后/日落前 0-10°，低角度暖橙红光
+    const goldenHour =
+      smoothRange(-1, 8, sunH) * (1 - smoothRange(8, 20, sunH));
+    // 曙暮光分层（民用/航海/天文，色温与亮度逐层降低）
+    const civilTwi =
+      smoothRange(-6, -0.5, sunH) * (1 - smoothRange(1, 5, sunH));
+    const nauticalTwi =
+      smoothRange(-12, -6, sunH) * (1 - smoothRange(-4, 0, sunH));
+    const astroTwi =
+      smoothRange(-18, -12, sunH) * (1 - smoothRange(-10, -6, sunH));
+    const twilight = civilTwi + nauticalTwi * 0.7; // 兼容旧变量（暖色合成）
+    const nightness = 1 - smoothRange(-16, -4, sunH);
 
+    // 天顶：深夜黑 → 天文/航海深蓝 → 白天蓝；正午 dayBrightness 提亮到更浅蓝白
     let skyZenith = mixRgb([0.004, 0.008, 0.03], [0.16, 0.48, 0.76], daylight);
     skyZenith = mixRgb(
       skyZenith,
-      [0.075, 0.105, 0.235],
-      twilight * (1 - daylight) * 0.62,
+      [0.34, 0.60, 0.84],
+      dayBrightness * daylight * 0.55,
     );
+    skyZenith = mixRgb(skyZenith, [0.06, 0.09, 0.18], astroTwi * 0.7);
+    skyZenith = mixRgb(skyZenith, [0.075, 0.105, 0.235], nauticalTwi * 0.6);
+    skyZenith = mixRgb(skyZenith, [0.12, 0.10, 0.18], civilTwi * 0.4);
+    // 地平线：夜黑 → 曙暮光暖紫 → 白天浅蓝；黄金时刻强暖橙、正午偏白
     let skyHorizon = mixRgb([0.018, 0.028, 0.072], [0.63, 0.8, 0.88], daylight);
-    skyHorizon = mixRgb(skyHorizon, [0.33, 0.16, 0.25], twilight * 0.58);
-    const waterDeep = mixRgb(
-      [0.008, 0.025, 0.055],
-      [0.025, 0.25, 0.36],
-      daylight,
+    skyHorizon = mixRgb(
+      skyHorizon,
+      [0.78, 0.82, 0.88],
+      dayBrightness * daylight * 0.4,
     );
+    skyHorizon = mixRgb(skyHorizon, [0.95, 0.45, 0.18], goldenHour * 0.65);
+    skyHorizon = mixRgb(skyHorizon, [0.45, 0.18, 0.16], civilTwi * 0.55);
+    skyHorizon = mixRgb(skyHorizon, [0.10, 0.08, 0.16], nauticalTwi * 0.5);
+    // 水面亮度梯度（比天空稍窄，水面反射更集中于高太阳角）
+    const waterDay = smoothRange(-2, 50, sunH);
+    const waterDeep = mixRgb([0.008, 0.025, 0.055], [0.025, 0.25, 0.36], waterDay);
     const waterShallow = mixRgb(
       [0.035, 0.105, 0.17],
       [0.12, 0.52, 0.67],
-      daylight,
+      waterDay,
     );
+    // 日出/日落光色区分（真实气象学：日出空气清澈偏金粉，日落气溶胶多偏深红）
+    // 用太阳高度角变化方向判断：dh/dt > 0 = 日出（上升），< 0 = 日落（下降）
+    const skyLater = astronomyAt(new Date(date.getTime() + 12 * 60000));
+    const sunRising = skyLater.sunElevation > sky.sunElevation;
+    // 日出：金黄淡橙偏粉；日落：深红血橙饱和。低空时差异最明显，高空统一偏白
+    const sunLowColor = sunRising
+      ? [1.0, 0.60, 0.32]   // 日出：金粉淡橙
+      : [0.95, 0.22, 0.10]; // 日落：深红血橙
     const celestialColor = mixRgb(
-      [1.0, 0.28, 0.085],
+      sunLowColor,
       [1.0, 0.95, 0.8],
       smoothRange(-1, 18, sunDegrees),
     );
@@ -982,19 +1042,18 @@
       waterDeep,
       waterShallow,
       celestialColor,
-      sunVisibility: smoothRange(-1.15, 0.15, sunDegrees),
-      moonVisibility: smoothRange(-1.2, 1.5, moonDegrees),
+      // 日月可见度：角半径均约 2.1°，加 0.57° 大气折射，中心到 -2.7° 才完全消失。
+      // 地平线(rd.y=0)自然裁切圆盘底半，可见度控制整体渐隐，避免突兀消失。
+      sunVisibility: smoothRange(-2.7, 0.3, sunDegrees),
+      moonVisibility: smoothRange(-2.7, 0.4, moonDegrees),
       nightness,
       isNight: sunDegrees < -6,
       period: sunDegrees > 5 ? "day" : sunDegrees > -9 ? "dusk" : "night",
     });
   }
 
-  /* ---------------- 主题覆盖（auto / day / dusk / night）+ 连续天文时间过渡 ---------------- */
-  let override = "auto";
-
   /* ---------------- 相机姿态：鼠标/触摸拖动旋转视角 ----------------
-     yaw=0 朝南(+z)、pitch=0 水平。auto 模式可自由拖动；手动模式锁定朝南。
+     yaw=0 朝南(+z)、pitch=0 水平。可自由拖动旋转视角观察日月升落。
      天文计算保持真实，用户通过旋转视角来观察日月升落。 */
   let cameraYaw = 0;
   let cameraPitch = 0;
@@ -1017,7 +1076,6 @@
     return { x: e.clientX, y: e.clientY };
   }
   function onPointerDown(e) {
-    if (override !== "auto") return; // 手动模式不旋转
     cameraDragging = true;
     const p = pointerXY(e);
     dragLastX = p.x;
@@ -1126,9 +1184,7 @@
   let autoTimeOffsetMs = 0;
   const TIME_SCALES = [1, 100, 1000, 10000];
   function targetDateMs() {
-    const now = new Date();
-    if (override === "auto") return now.getTime() + autoTimeOffsetMs;
-    return previewTimes(now)[override];
+    return Date.now() + autoTimeOffsetMs;
   }
   let displayDateMs = Date.now();
   let lastSkyState = computePalette(new Date(displayDateMs));
@@ -1558,8 +1614,8 @@
     return `${hh}:${mm} UTC${offset}`;
   }
   window.GalokOcean = {
-    setOverride(m) {
-      if (["auto", "day", "dusk", "night"].includes(m)) override = m;
+    setOverride() {
+      // 固定时段切换已移除，始终使用真实天文时间。保留空函数兼容旧调用。
     },
     get isNight() {
       return lastSkyState.isNight;
@@ -1568,9 +1624,7 @@
       return lastSkyState.nightness;
     },
     get period() {
-      return override === "auto"
-        ? computePalette(new Date(displayDateMs)).period
-        : override;
+      return computePalette(new Date(displayDateMs)).period;
     },
     // 时钟显示虚拟时间：1× 时 = 真实时间；加速时跟着昼夜一起快进，保持与时钟所见一致
     get clockText() {
@@ -1683,12 +1737,11 @@
     last = now; // 真实帧间隔（不受限，用于时间累加）
     const dt = Math.min(0.1, rawDt); // 受限 dt（用于物理/渲染，避免大跳变）
 
-    // auto 模式时间加速：用真实帧间隔累加（不受 dt 上限影响，保证低帧率下加速仍准确）
-    if (override === "auto" && timeScale > 1) {
+    // 时间加速：用真实帧间隔累加（不受 dt 上限影响，保证低帧率下加速仍准确）
+    if (timeScale > 1) {
       autoTimeOffsetMs += rawDt * 1000 * (timeScale - 1);
       viewLocked = false; // 加速推进时间时解除视角锁定，让昼夜自然流逝
     } else if (
-      override === "auto" &&
       timeScale === 1 &&
       !viewLocked &&
       Math.abs(autoTimeOffsetMs) > 1
@@ -1701,21 +1754,12 @@
     let dateDelta = targetDateMs() - displayDateMs;
     if (dateDelta > DAY_MS / 2) dateDelta -= DAY_MS;
     if (dateDelta < -DAY_MS / 2) dateDelta += DAY_MS;
-    if (override === "auto") {
-      // auto 模式：时间连续推进，直接同步避免平滑滞后（手动切换才需要过渡）
-      displayDateMs += dateDelta;
-    } else {
-      // 手动模式：平滑过渡到预览时刻，避免跳变
-      displayDateMs += dateDelta * (1 - Math.exp(-dt * 2.2));
-    }
+    // 时间连续推进，直接同步避免平滑滞后
+    displayDateMs += dateDelta;
     const p = computePalette(new Date(displayDateMs));
     lastSkyState = p;
 
-    // 相机姿态：手动模式锁定朝南；auto 模式拖动时直接同步，否则平滑跟随目标
-    if (override !== "auto") {
-      cameraYawTarget = 0;
-      cameraPitchTarget = 0;
-    }
+    // 相机姿态：拖动时直接同步，否则平滑跟随目标
     if (!cameraDragging) {
       const k = 1 - Math.exp(-dt * 6);
       let dyaw = cameraYawTarget - cameraYaw;

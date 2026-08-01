@@ -18,7 +18,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=20260801-3" />
+    <link rel="stylesheet" href="./style.css?v=20260801-12" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 4c4 6 8 9 8 14a8 8 0 0 1-16 0c0-5 4-8 8-14z' fill='%234a9fd6'/%3E%3C/svg%3E"
@@ -36,14 +36,15 @@
       </div>
       <div class="hud-actions">
         <span class="hud-clock" id="clock" title="天空观测点当地时间"></span>
-        <span class="hud-mode" id="hud-mode" aria-live="polite">自动</span>
         <button
           class="time-scale-btn"
           id="time-scale"
           type="button"
           aria-label="调整时间流速"
           title="时间流速：1×"
-        >1×</button>
+        >
+          1×
+        </button>
         <button
           class="weather-btn"
           id="weather-rain"
@@ -89,65 +90,13 @@
           <span class="weather-badge" aria-hidden="true"></span>
         </button>
         <button
-          class="theme-toggle"
-          id="theme-toggle"
+          class="view-toggle"
+          id="view-toggle"
           type="button"
-          aria-label="切换昼夜主题"
-          title="切换昼夜主题"
+          aria-label="切换视角"
+          title="自动视角：自由拖动"
         >
-          <svg
-            class="ico-sun"
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="4.2" fill="currentColor" />
-            <g stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-              <line x1="12" y1="2.5" x2="12" y2="5" />
-              <line x1="12" y1="19" x2="12" y2="21.5" />
-              <line x1="2.5" y1="12" x2="5" y2="12" />
-              <line x1="19" y1="12" x2="21.5" y2="12" />
-              <line x1="5.2" y1="5.2" x2="6.9" y2="6.9" />
-              <line x1="17.1" y1="17.1" x2="18.8" y2="18.8" />
-              <line x1="5.2" y1="18.8" x2="6.9" y2="17.1" />
-              <line x1="17.1" y1="6.9" x2="18.8" y2="5.2" />
-            </g>
-          </svg>
-          <svg
-            class="ico-moon"
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            aria-hidden="true"
-          >
-            <path
-              d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"
-              fill="currentColor"
-            />
-          </svg>
-          <span class="auto-badge" aria-hidden="true"></span>
-          <svg
-            class="ico-dusk"
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            aria-hidden="true"
-          >
-            <path
-              d="M2 16 H22"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.6"
-              stroke-linecap="round"
-            />
-            <path d="M7 16 A5 5 0 0 1 17 16 Z" fill="currentColor" />
-            <g stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
-              <line x1="12" y1="5.5" x2="12" y2="7.6" />
-              <line x1="6.4" y1="8.2" x2="7.7" y2="9.5" />
-              <line x1="17.6" y1="8.2" x2="16.3" y2="9.5" />
-            </g>
-          </svg>
+          自动
         </button>
       </div>
     </header>
@@ -167,42 +116,7 @@
     <footer class="footer-hint" aria-hidden="true">
       <span>· 左右旋转，查看更多 ·</span>
     </footer>
-
-    <!-- 视角切换：自动 / 日出 / 日落 / 月升 / 月落（auto 模式下生效） -->
-    <aside class="view-panel" id="view-panel" aria-label="视角切换">
-      <button
-        class="view-btn is-active"
-        data-view="auto"
-        type="button"
-        title="自动视角：自由拖动"
-      >自动</button>
-      <button
-        class="view-btn"
-        data-view="sunrise"
-        type="button"
-        title="跳到日出时刻并对准东方"
-      >日出</button>
-      <button
-        class="view-btn"
-        data-view="sunset"
-        type="button"
-        title="跳到日落时刻并对准西方"
-      >日落</button>
-      <button
-        class="view-btn"
-        data-view="moonrise"
-        type="button"
-        title="跳到月升时刻并对准月亮"
-      >月升</button>
-      <button
-        class="view-btn"
-        data-view="moonset"
-        type="button"
-        title="跳到月落时刻并对准月亮"
-      >月落</button>
-    </aside>
-
-    <script src="./water.js?v=20260801-4"></script>
-    <script src="./app.js?v=20260801-4"></script>
+    <script src="./water.js?v=20260801-12"></script>
+    <script src="./app.js?v=20260801-12"></script>
   </body>
 </html>

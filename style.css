@@ -100,28 +100,7 @@ body {
   opacity: 0.8;
   font-weight: 400;
 }
-.hud-mode {
-  font-size: 0.74rem;
-  letter-spacing: 0.18em;
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass);
-  opacity: 0.92;
-  min-width: 3.2em;
-  text-align: center;
-  transition:
-    color 0.8s ease,
-    border-color 0.8s ease,
-    background 0.8s ease;
-}
-@media (max-width: 640px) {
-  .hud-mode {
-    display: none;
-  }
-}
-
-/* 时间流速按钮：文字型，与 hud-mode 风格一致；加速时点亮 */
+/* 时间流速按钮：文字型胶囊；加速时点亮 */
 .time-scale-btn {
   font-family: inherit;
   font-size: 0.74rem;
@@ -166,77 +145,6 @@ body {
     padding: 3px 8px;
     min-width: 2.6em;
   }
-}
-
-.theme-toggle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--glass-border);
-  background: var(--glass);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: var(--hud-fg);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  transition:
-    transform 0.3s ease,
-    background 0.3s ease,
-    box-shadow 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-.theme-toggle:hover {
-  transform: translateY(-2px) rotate(8deg);
-  background: var(--glass-strong);
-  box-shadow: 0 8px 22px -8px rgba(120, 200, 255, 0.5);
-}
-.theme-toggle:active {
-  transform: translateY(0) scale(0.94);
-}
-/* 主题图标三态：白天=太阳，黄昏=半日落，夜晚=月亮。
-   三个 SVG 绝对定位堆叠于按钮中心，按 data-period 切换显隐；
-   data-period 由 app.js 写入真实时段（day/dusk/night），auto 模式下也写实际值。 */
-.theme-toggle svg {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transition:
-    transform 0.5s cubic-bezier(0.4, 1.6, 0.5, 1),
-    opacity 0.4s ease;
-  transform: translate(-50%, -50%) scale(0);
-  opacity: 0;
-}
-body[data-period="day"] .ico-sun {
-  transform: translate(-50%, -50%) scale(1) rotate(0);
-  opacity: 1;
-}
-body[data-period="dusk"] .ico-dusk {
-  transform: translate(-50%, -50%) scale(1) rotate(0);
-  opacity: 1;
-}
-body[data-period="night"] .ico-moon {
-  transform: translate(-50%, -50%) scale(1) rotate(0);
-  opacity: 1;
-}
-
-/* 自动模式徽标（小圆环） */
-.auto-badge {
-  position: absolute;
-  inset: auto auto -3px -3px;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  border: 2px solid #bfe6ff;
-  background: #4a9fd6;
-  box-shadow: 0 0 8px rgba(74, 159, 214, 0.9);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-body[data-mode="auto"] .auto-badge {
-  opacity: 1;
 }
 
 /* ================= 天气开关（雨 / 闪电） ================= */
@@ -811,57 +719,44 @@ body[data-mode="auto"] .auto-badge {
   white-space: nowrap;
 }
 
-/* 视角切换面板：左下角竖排小按钮 */
-.view-panel {
-  position: fixed;
-  z-index: 14;
-  bottom: clamp(10px, 3vh, 26px);
-  left: clamp(10px, 3vw, 22px);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  pointer-events: none;
-}
-.view-btn {
-  pointer-events: auto;
+/* 视角切换按钮：单按钮循环切换（自动/日出/日落/月升/月落） */
+.view-toggle {
   font-family: inherit;
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  padding: 5px 13px;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
   border-radius: 999px;
   border: 1px solid var(--glass-border);
   background: var(--glass);
-  color: var(--hud-fg-dim, rgba(255, 255, 255, 0.7));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  color: var(--hud-fg-dim);
   cursor: pointer;
+  min-width: 3em;
+  text-align: center;
+  white-space: nowrap;
   transition:
-    color 0.2s,
-    border-color 0.2s,
-    background 0.2s,
-    transform 0.12s;
+    color 0.3s ease,
+    border-color 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.4s ease;
 }
-.view-btn:hover {
+.view-toggle:hover {
   color: var(--hud-fg);
   border-color: rgba(255, 255, 255, 0.55);
 }
-.view-btn:active {
+.view-toggle:active {
   transform: scale(0.94);
 }
-.view-btn.is-active {
+.view-toggle.is-active {
   color: #fff;
   border-color: rgba(150, 200, 255, 0.7);
   background: rgba(80, 140, 200, 0.45);
   box-shadow: 0 0 14px rgba(150, 200, 255, 0.45);
 }
 @media (max-width: 640px) {
-  .view-panel {
-    flex-direction: row;
-    flex-wrap: wrap;
-    max-width: 60vw;
-  }
-  .view-btn {
-    padding: 4px 10px;
+  .view-toggle {
+    padding: 3px 8px;
+    font-size: 0.68rem;
+    min-width: 2.6em;
   }
 }
 
@@ -979,8 +874,7 @@ body,
 .tagline-sub,
 .footer-hint,
 .hud-name,
-.hud-clock,
-.theme-toggle {
+.hud-clock {
   transition-property:
     background,
     color,
@@ -992,6 +886,12 @@ body,
 
 /* ================= 响应式 ================= */
 @media (max-width: 640px) {
+  .hud {
+    padding: 10px 8px;
+  }
+  .hud-actions {
+    gap: 5px;
+  }
   .tagline {
     top: 11%;
   }
@@ -1015,6 +915,10 @@ body,
   }
   .islands {
     padding-top: 18vh;
+  }
+  /* 横屏低高度：隐藏脚注，让底部按钮条独占底部，避免拥挤 */
+  .footer-hint {
+    display: none;
   }
 }
 
