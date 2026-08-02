@@ -422,7 +422,14 @@
         float steepness = clamp(k * w.z, 0.0, 0.55);
         h += w.z * (c + 0.18 * steepness * cos(2.0 * phase));
         // Gerstner 水平位移与波幅同量纲；原来多除一次 k 会把长波过度拉伸。
+        // 陡峭度限制：k*w.z*uChoppy 必须 < π 才不自交，0.55*0.5=0.275 远低于 π。
         disp += (w.xy / k) * w.z * s * uChoppy;
+      }
+      // 多波叠加后对总位移做软限制，防止局部陡峭度溢出导致网格自交/翻转。
+      {
+        float dl = length(disp);
+        float maxDisp = 0.75;
+        if (dl > maxDisp) disp *= maxDisp / dl;
       }
 
       // 随机扰动是有限宽度的频散波包：波峰以相速度运动，能量以群速度扩散。
@@ -612,7 +619,10 @@
     void main(){
       vec2 fragCoord = gl_FragCoord.xy;
       vec2 uv = (2.0 * fragCoord - uResolution) / uResolution.y;
-      float t = uTime;
+      // uTime 取 mod 避免浮点精度丢失：realTimeOffset 最大 86400，乘以角速度后
+      // 会超出 highp float 有效精度（23位尾数），导致波纹/云噪声格子化。
+      // 周期 3600s（1小时）：sin/cos 是周期函数，mod 不影响视觉；云噪声坐标也够用。
+      float t = mod(uTime, 3600.0);
 
       vec3 ro = vec3(0.0, 0.70, 0.0);
       // 本地视线（相机朝 +z 南），再旋转到世界空间（先绕 x 俯仰，再绕 y 偏航）
@@ -1194,7 +1204,8 @@
   const MAX_RIPPLES = 48; // JS 端保留更多涟漪状态，避免雨滴涟漪在生命周期内被过早删除
   const ripples = [];
   function addRipple(x, z, strength) {
-    ripples.push({ x, z, t0: perfTime, s: strength });
+    // t0 存 mod 后的值，和 shader 里 mod(uTime, 3600) 一致，保证 age = t - r.z 正确
+    ripples.push({ x, z, t0: realTimeOffset % 3600, s: strength });
     while (ripples.length > MAX_RIPPLES) ripples.shift();
   }
   const rippleUniform = new Float32Array(64); // 16 个 vec4
@@ -1277,42 +1288,172 @@
     // 从相机 (0, 0.7, 0) 看向 (x, 4, z) 方向 ≈ normalize(x, 3.3, z)
     const len = Math.hypot(x, 3.3, z) || 1;
     const cloudCover = CLOUD_COVER + weather.cloudDarken * (1 - CLOUD_COVER);
-    return cloudFieldJS(x / len, 3.3 / len, z / len, perfTime, cloudCover);
+    return cloudFieldJS(x / len, 3.3 / len, z / len, realTimeOffset % 3600, cloudCover);
   }
 
-  /* ---------------- 天气：云层状态机 + 雨 / 闪电（三态开关） ----------------
-     核心自然规律：积雨云需数小时堆积（此处压缩为 ~80s），成熟后才有几率降雨/闪电；
-     降水/闪电结束后云层仍持续存在，随后缓慢消散（~200s），不会因天气结束而立即散去。
-     云层状态机：clearing → building → mature → decaying → clearing（循环）
-     - clearing：云量→0，等待下一次积云（长间隔 180-600s，代表 1-3 天）
-     - building：云量 0→1 缓慢堆积（~80s；手动模式加速到 ~10s）
-     - mature：维持满云（60-150s），此阶段才有几率触发雨/闪电
-     - decaying：云量缓慢消散（~200s），雨/闪电不会新触发但已存在的自然结束
-     雨和闪电独立概率判定，因此会出现：只有雨、只有闪电（干雷暴）、两者皆有、或全无。
-     每个开关三态：off=关闭 | on=立即（加速积云）| auto=随机（默认）
+  /* ============================================================
+     天气系统 v2：时间种子驱动 + 真实过渡时序
+     ------------------------------------------------------------
+     核心理念：
+     1. 确定性剧本：同日期种子 → 同天气剧本，所有用户同一时刻看到同一天气
+     2. 时间驱动：用真实当前时间对照剧本查"现在该在哪段"，刷新/重开都能恢复
+     3. 真实过渡：积云(白,慢)→厚云(白)→乌云化(渐暗灰)→雨→雨停→乌云渐白→白云消散
+        每步都有平滑过程，不会突变
+     4. 解耦：cloudLevel(厚度) 与 cloudDarken(乌化) 独立，白云可厚不乌
+     5. localStorage 持久化剧本，避免每次重算（同日期种子结果一致，缓存安全）
+
+     真实过渡时序（剧本按真实小时安排，状态平滑跟随）：
+     - 积云堆积：0.8-1.5 小时（白云逐渐变厚，不乌）
+     - 成熟期：1-3 小时（厚云，雨前10分钟开始乌化）
+     - 降雨：成熟期中段，持续到成熟期末
+     - 消散：0.5-1 小时（乌云前半段快速变白，白云缓慢消散）
+
+     每个开关三态：off=关闭 | on=立即（加速积云到乌云+雨）| auto=按剧本（默认）
      ---------------------------------------------------------------- */
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0;
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // 日期种子：年*10000+月*100+日，同一天得同种子
+  function dateSeedOf(date) {
+    return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+  }
+
+  // 生成今日天气剧本：1-3 个天气事件，每个事件是一个云层周期
+  // 时间单位：小时（0-24），对应真实钟点
+  function generateDailyPlan(date) {
+    const seed = dateSeedOf(date);
+    const rng = mulberry32(seed);
+    const events = [];
+    // 1-3 个天气事件（积云周期）
+    const eventCount = 1 + Math.floor(rng() * 3);
+    let cursor = 6 + rng() * 4; // 首次积云在 6-10 点开始
+    for (let i = 0; i < eventCount; i++) {
+      // 积云堆积时长（小时）：0.8-1.5（真实约 60-90 分钟）
+      const buildHours = 0.8 + rng() * 0.7;
+      // 成熟期时长（小时）：1-3
+      const matureHours = 1.0 + rng() * 2.0;
+      // 消散时长（小时）：0.5-1.0
+      const decayHours = 0.5 + rng() * 0.5;
+      const cloudStart = cursor;
+      const matureStart = cloudStart + buildHours;
+      const decayStart = matureStart + matureHours;
+      const clearStart = decayStart + decayHours;
+      // 降水：60% 概率有雨，强度 0.3-0.9
+      const hasRain = rng() < 0.6;
+      const rainIntensity = hasRain ? 0.3 + rng() * 0.6 : 0;
+      // 雨在成熟期中段开始，持续到成熟期末
+      const rainStart = hasRain ? matureStart + matureHours * (0.2 + rng() * 0.2) : 0;
+      const rainEnd = hasRain ? matureStart + matureHours * (0.7 + rng() * 0.2) : 0;
+      // 闪电：仅有雨时有 40% 概率，或独立干雷暴 10%
+      const hasLightning = hasRain ? rng() < 0.4 : rng() < 0.1;
+      events.push({
+        cloudStart, matureStart, decayStart, clearStart,
+        hasRain, rainIntensity, rainStart, rainEnd,
+        hasLightning,
+      });
+      // 下个事件间隔 2-5 小时
+      cursor = clearStart + 2 + rng() * 3;
+      if (cursor > 22) break; // 不排到深夜
+    }
+    return { dateSeed: seed, events };
+  }
+
+  // 剧本缓存（同一天只算一次）
+  let cachedPlan = null;
+  let cachedPlanDate = -1;
+  function getDailyPlan(date) {
+    const ds = dateSeedOf(date);
+    if (cachedPlan && cachedPlanDate === ds) return cachedPlan;
+    cachedPlan = generateDailyPlan(date);
+    cachedPlanDate = ds;
+    return cachedPlan;
+  }
+
+  // localStorage 持久化：存剧本+上次同步时间，刷新后对照真实时间恢复
+  const WEATHER_STORAGE_KEY = "galok_weather_plan_v1";
+  function loadStoredPlan() {
+    try {
+      const raw = localStorage.getItem(WEATHER_STORAGE_KEY);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      return obj;
+    } catch (e) { return null; }
+  }
+  function saveStoredPlan(plan) {
+    try {
+      localStorage.setItem(WEATHER_STORAGE_KEY, JSON.stringify({
+        dateSeed: plan.dateSeed,
+        events: plan.events,
+        savedAt: Date.now(),
+      }));
+    } catch (e) { /* localStorage 不可用时静默降级 */ }
+  }
+
+  // 根据真实时间查剧本，得当前天气目标状态（不是瞬时值，是"该在哪个阶段"）
+  // 返回 { phase, cloudTarget, rainTarget, lightningAllow }
+  function queryPlanState(date) {
+    const plan = getDailyPlan(date);
+    const hour = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+    // 找当前落在哪个事件里
+    let cur = null;
+    for (const ev of plan.events) {
+      if (hour >= ev.cloudStart && hour < ev.clearStart) { cur = ev; break; }
+    }
+    if (!cur) {
+      // 不在任何事件中：晴天
+      return { phase: "clear", cloudTarget: 0, rainTarget: 0, lightningAllow: false };
+    }
+    if (hour < cur.matureStart) {
+      // 积云阶段：白云逐渐堆厚（还不乌）
+      return { phase: "building", cloudTarget: 0.95, rainTarget: 0, lightningAllow: false };
+    }
+    if (hour < cur.decayStart) {
+      // 成熟期：厚云，可能开始乌化+下雨
+      const inRain = cur.hasRain && hour >= cur.rainStart && hour < cur.rainEnd;
+      // 乌化目标：有雨或即将下雨(雨前10分钟)时渐乌
+      const rainApproaching = cur.hasRain && hour >= cur.rainStart - 1/6 && hour < cur.rainStart;
+      const darkenTarget = (inRain || rainApproaching) ? 0.85 : 0.15;
+      return {
+        phase: "mature",
+        cloudTarget: 1.0,
+        rainTarget: inRain ? cur.rainIntensity : 0,
+        lightningAllow: cur.hasLightning,
+        darkenTarget,
+      };
+    }
+    // 消散阶段：云逐渐消散，乌化先退（雨停后乌云先变白再散）
+    const decayProgress = (hour - cur.decayStart) / (cur.clearStart - cur.decayStart);
+    return {
+      phase: "decaying",
+      cloudTarget: Math.max(0, 1.0 - decayProgress),
+      rainTarget: 0,
+      lightningAllow: false,
+      darkenTarget: Math.max(0, 0.85 * (1 - decayProgress * 2)), // 前半段快速变白
+    };
+  }
+
   const weather = {
-    rainMode: "auto", // off | on | auto（默认 auto：随机）
-    lightningMode: "auto", // off | on | auto（默认 auto：随机）
-    // 云层独立状态机
-    cloudLevel: 0, // 0-1 当前云层厚度（独立于雨/闪电）
-    cloudPhase: "clearing", // clearing | building | mature | decaying
-    matureEndAt: 0, // 成熟期结束时刻
-    nextCloudBuildAt: 8 + Math.random() * 12, // 首次积云在 8-20s 后开始
-    // 雨
-    rainActive: false,
-    rainEndAt: 0,
-    rainIntensity: 0,
+    rainMode: "auto",   // off | on | auto
+    lightningMode: "auto",
+    cloudLevel: 0,      // 当前云层厚度 0-1
+    cloudDarken: 0,     // 当前乌化程度 0-1（独立于厚度）
+    rainIntensity: 0,   // 当前雨强 0-1
     rainTarget: 0,
-    // 闪电
     flash: 0,
     flashSeq: [],
-    nextLightningAt: 30 + Math.random() * 60, // 首次闪电推迟到云层可能成熟后
     lightningActive: false,
     lightningEndAt: 0,
+    nextLightningAt: 30 + Math.random() * 60,
     boltSeed: 0,
-    // 派生
-    cloudDarken: 0,
+    // 手动模式临时覆盖（on 模式强制推进积云）
+    manualBoost: false,
   };
 
   function setWeather(opts) {
@@ -1321,28 +1462,20 @@
       weather.rainMode = opts.rain;
       if (opts.rain === "off") {
         weather.rainTarget = 0;
-        weather.rainActive = false;
+        // 若雨和闪电都非 on，清除手动加速
+        if (weather.lightningMode !== "on") weather.manualBoost = false;
       } else if (opts.rain === "on") {
-        // 立即模式：加速积云阶段（不跳过"先积云后下雨"的自然顺序）
-        if (
-          weather.cloudPhase === "clearing" ||
-          weather.cloudPhase === "decaying"
-        )
-          weather.cloudPhase = "building";
+        weather.manualBoost = true; // 触发加速积云
       }
-      // auto：由云层状态机自然推进，不做特殊处理
     }
     if (opts.lightning !== undefined) {
       weather.lightningMode = opts.lightning;
       if (opts.lightning === "off") {
         weather.lightningActive = false;
         weather.flashSeq = [];
+        if (weather.rainMode !== "on") weather.manualBoost = false;
       } else if (opts.lightning === "on") {
-        if (
-          weather.cloudPhase === "clearing" ||
-          weather.cloudPhase === "decaying"
-        )
-          weather.cloudPhase = "building";
+        weather.manualBoost = true;
       }
     }
   }
@@ -1352,89 +1485,43 @@
     const manualLightning = weather.lightningMode === "on";
     const anyManual = manualRain || manualLightning;
 
-    // ---- 云层独立状态机（先积云，后天气）----
-    // 手动模式加速积云（约 10s 堆厚），但仍保留"先积云后天气"的自然顺序。
-    // 自动模式堆积约 80s，消散约 200s，整个周期 10-18 分钟代表真实 1-3 天。
-    const buildRate = anyManual ? 0.1 : 0.012; // 手动 ~10s，自动 ~80s
-    const decayRate = 0.005; // 消散比堆积慢（自然规律）
+    // ---- 用真实时间查剧本，得当前天气目标 ----
+    const nowDate = new Date(targetDateMs());
+    const planState = queryPlanState(nowDate);
+    // 持久化剧本（同日期只存一次）
+    saveStoredPlan(getDailyPlan(nowDate));
 
-    // 手动模式强制从消散阶段进入积云
-    if (
-      anyManual &&
-      (weather.cloudPhase === "clearing" || weather.cloudPhase === "decaying")
-    ) {
-      weather.cloudPhase = "building";
+    // ---- 目标值确定 ----
+    let cloudTarget = planState.cloudTarget;
+    let rainTarget = planState.rainTarget;
+    let darkenTarget = planState.darkenTarget !== undefined
+      ? planState.darkenTarget
+      : (planState.phase === "mature" ? 0.15 : 0);
+
+    // 手动模式覆盖：on 强制推进到乌云+雨
+    if (anyManual && weather.manualBoost) {
+      cloudTarget = 1.0;
+      darkenTarget = 0.85;
+      if (manualRain) rainTarget = 1.0;
     }
+    // 手动关闭雨/闪电时，目标归零（但云层仍由剧本驱动，自然消散）
+    if (weather.rainMode === "off") rainTarget = 0;
 
-    switch (weather.cloudPhase) {
-      case "clearing":
-        weather.cloudLevel = Math.max(0, weather.cloudLevel - decayRate * dt);
-        if (weather.cloudLevel <= 0.001 && t >= weather.nextCloudBuildAt) {
-          weather.cloudPhase = "building";
-        }
-        break;
-      case "building":
-        weather.cloudLevel = Math.min(1, weather.cloudLevel + buildRate * dt);
-        if (weather.cloudLevel >= 0.95) {
-          weather.cloudPhase = "mature";
-          weather.matureEndAt = t + 60 + Math.random() * 90; // 成熟期 60-150s
-        }
-        break;
-      case "mature":
-        weather.cloudLevel = Math.min(
-          1,
-          weather.cloudLevel + buildRate * 0.2 * dt,
-        );
-        if (t >= weather.matureEndAt && !anyManual) {
-          weather.cloudPhase = "decaying";
-        }
-        break;
-      case "decaying":
-        // 缓慢消散；雨/闪电不会新触发，但已存在的会自然结束
-        weather.cloudLevel = Math.max(
-          0,
-          weather.cloudLevel - decayRate * 0.7 * dt,
-        );
-        if (weather.cloudLevel <= 0.15) {
-          weather.cloudPhase = "clearing";
-          // 下次积云：长间隔（代表 1-3 天的加速时间）
-          weather.nextCloudBuildAt = t + 180 + Math.random() * 420;
-        }
-        break;
-    }
+    // ---- 平滑过渡（关键：不同变量用不同时间常数，模拟真实物理速度）----
+    // 手动模式用更短时间常数（用户期望几十秒看到效果），自动模式用真实慢速
+    const cloudTau = weather.manualBoost ? 15.0 : 90.0;  // 手动 ~15s，自动 ~90s
+    weather.cloudLevel += (cloudTarget - weather.cloudLevel) * (1 - Math.exp(-dt / cloudTau));
 
-    // cloudDarken 平滑跟随 cloudLevel（不再直接绑定雨/闪电活跃状态）
-    weather.cloudDarken +=
-      (weather.cloudLevel - weather.cloudDarken) * (1 - Math.exp(-dt * 0.4));
+    // cloudDarken：乌化速度中等（雨前10-15分钟渐乌，雨停后15-20分钟渐白）
+    const darkenTau = weather.manualBoost ? 10.0 : 45.0;
+    weather.cloudDarken += (darkenTarget - weather.cloudDarken) * (1 - Math.exp(-dt / darkenTau));
 
-    // ---- 雨：仅在成熟积雨云阶段有几率触发 ----
-    if (manualRain) {
-      if (weather.cloudPhase === "mature") {
-        weather.rainActive = true;
-        weather.rainTarget = 1.0;
-      }
-    } else if (weather.rainMode === "auto") {
-      if (!weather.rainActive && weather.cloudPhase === "mature") {
-        // 低概率阵雨：每秒约 1.2% 几率（不是每个周期都下雨）
-        if (Math.random() < dt * 0.012) {
-          weather.rainActive = true;
-          weather.rainEndAt = t + 30 + Math.random() * 50; // 阵雨 30-80s
-          weather.rainTarget = 0.5 + Math.random() * 0.4;
-        }
-      }
-      if (weather.rainActive && t >= weather.rainEndAt) {
-        weather.rainActive = false;
-        weather.rainTarget = 0;
-        // 雨停后不会立即再下：需等下一个云层周期
-      }
-    } else {
-      weather.rainTarget = 0;
-      weather.rainActive = false;
-    }
-    weather.rainIntensity +=
-      (weather.rainTarget - weather.rainIntensity) * (1 - Math.exp(-dt * 1.6));
+    // rainIntensity：雨强变化较快（雨开始/停止约 1-2 分钟过渡）
+    const rainTau = weather.manualBoost ? 6.0 : 20.0;
+    weather.rainIntensity += (rainTarget - weather.rainIntensity) * (1 - Math.exp(-dt / rainTau));
+    weather.rainTarget = rainTarget;
 
-    // ---- 雨滴打水面涟漪：只在乌云下方的水面生成（雨跟着乌云）----
+    // ---- 雨滴打水面涟漪：只在有雨时生成 ----
     if (weather.rainIntensity > 0.12) {
       const dropsPerSec = weather.rainIntensity * 10;
       const expect = dropsPerSec * dt;
@@ -1443,33 +1530,28 @@
         (Math.random() < expect - Math.floor(expect) ? 1 : 0);
       let placed = 0;
       for (let i = 0; i < count * 4 && placed < count; i++) {
-        // 最多重试 4 倍，找不到乌云就少下
         const x = (Math.random() - 0.5) * 9;
         const z = 0.8 + Math.random() * 5.5;
         const density = cloudDensityAt(x, z);
-        if (density < 0.25) continue; // 该位置上方无乌云，不下雨
-        // 云越密雨滴越大（乌云中心雨势更猛）
+        if (density < 0.25) continue;
         const s = 0.01 + density * 0.018;
         addRipple(x, z, s);
         placed++;
       }
     }
 
-    // ---- 闪电：与雨独立，仅在厚云阶段有几率触发（可单独出现）----
-    const canLightning =
-      weather.cloudPhase === "mature" || weather.cloudLevel > 0.75;
+    // ---- 闪电：仅在剧本允许且有乌云时触发 ----
+    const canLightning = planState.lightningAllow || (manualLightning && weather.manualBoost);
+    const cloudThickEnough = weather.cloudLevel > 0.75 && weather.cloudDarken > 0.5;
 
     if (
       weather.lightningMode !== "off" &&
       !weather.lightningActive &&
       t >= weather.nextLightningAt
     ) {
-      if (
-        manualLightning ||
-        (weather.lightningMode === "auto" && canLightning)
-      ) {
+      if (manualLightning || (weather.lightningMode === "auto" && canLightning && cloudThickEnough)) {
         weather.lightningActive = true;
-        const dur = 0.8 + Math.random() * 1.4; // 序列持续 0.8-2.2s
+        const dur = 0.8 + Math.random() * 1.4;
         weather.lightningEndAt = t + dur;
         weather.flashSeq = [];
         let tt = 0;
@@ -1479,11 +1561,10 @@
             dur: 0.06 + Math.random() * 0.09,
             v: 0.7 + Math.random() * 0.3,
           });
-          tt += 0.12 + Math.random() * 0.28; // 脉冲间隔
+          tt += 0.12 + Math.random() * 0.28;
         }
-        weather.boltSeed = Math.random() * 100; // 闪电纹种子
+        weather.boltSeed = Math.random() * 100;
       } else if (weather.lightningMode === "auto" && !canLightning) {
-        // 云不够厚：推迟到云层可能变厚时再检查
         weather.nextLightningAt = t + 20 + Math.random() * 40;
       }
     }
@@ -1498,9 +1579,8 @@
     if (weather.lightningActive && t >= weather.lightningEndAt) {
       weather.lightningActive = false;
       weather.flashSeq = [];
-      // 闪电结束不影响云层（云层按自身状态机继续）
       if (manualLightning) weather.nextLightningAt = t + 2 + Math.random() * 3;
-      else weather.nextLightningAt = t + 60 + Math.random() * 180; // 长间隔
+      else weather.nextLightningAt = t + 60 + Math.random() * 180;
     }
     weather.flash = flash;
   }
@@ -1637,7 +1717,8 @@
       return lastSkyState.moonPhase;
     },
     get time() {
-      return perfTime;
+      // 返回 mod 后的值，和 shader 里 mod(uTime, 3600) 一致，保证 JS/shader 波形同步
+      return realTimeOffset % 3600;
     },
     sampleSurface,
     // 在世界坐标 (x, z) 的水面生成涟漪 —— 供 DOM 物体（如卡片）扰动水面
@@ -1728,6 +1809,10 @@
 
   /* ---------------- 主循环 ---------------- */
   const start = performance.now();
+  // realTimeOffset：基于 targetDateMs 的当天秒数（0-86400），驱动云/水波相位。
+  // 随 timeScale 加速而快速推进，让云/水波/天气/日月同步加速。
+  // 用当天秒数避免大时间戳的 float 精度损失。
+  let realTimeOffset = 0;
   let perfTime = 0,
     last = start;
   resize();
@@ -1759,6 +1844,13 @@
     const p = computePalette(new Date(displayDateMs));
     lastSkyState = p;
 
+    // realTimeOffset：当天秒数（0-86400），基于 displayDateMs（已含 timeScale 加速）。
+    // 驱动云/水波相位，让它们随 timeScale 加速而同步加速。
+    {
+      const d = new Date(displayDateMs);
+      realTimeOffset = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
+    }
+
     // 相机姿态：拖动时直接同步，否则平滑跟随目标
     if (!cameraDragging) {
       const k = 1 - Math.exp(-dt * 6);
@@ -1769,11 +1861,11 @@
       cameraPitch += (cameraPitchTarget - cameraPitch) * k;
     }
 
-    maybeSpawnNatural(perfTime);
+    maybeSpawnNatural(realTimeOffset);
     updateWeather(perfTime, dt);
 
     gl.uniform2f(U.uResolution, W, H);
-    gl.uniform1f(U.uTime, perfTime);
+    gl.uniform1f(U.uTime, realTimeOffset);
     gl.uniform3f(U.uSunDir, p.sunDir[0], p.sunDir[1], p.sunDir[2]);
     gl.uniform3f(U.uMoonDir, p.moonDir[0], p.moonDir[1], p.moonDir[2]);
     gl.uniform3f(
@@ -1814,7 +1906,7 @@
       p.waterShallow[2],
     );
     gl.uniform1f(U.uHorizonUv, HORIZON_UV);
-    gl.uniform1f(U.uChoppy, 0.7);
+    gl.uniform1f(U.uChoppy, 0.5);
     gl.uniform4fv(U.uWaves, waveUniform);
 
     // 涟漪渲染：按当前可见能量排序选 top 16，避免雨滴涟漪挤占槽位导致截停消失。
