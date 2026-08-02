@@ -100,51 +100,113 @@ body {
   opacity: 0.8;
   font-weight: 400;
 }
-/* 时间流速按钮：文字型胶囊；加速时点亮 */
+/* 时间流速按钮：圆形时钟图标 + 三档加速指示点（不显示数字） */
 .time-scale-btn {
-  font-family: inherit;
-  font-size: 0.74rem;
-  letter-spacing: 0.08em;
-  font-variant-numeric: tabular-nums;
-  padding: 3px 10px;
-  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   border: 1px solid var(--glass-border);
   background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: var(--hud-fg-dim);
+  display: grid;
+  place-items: center;
   cursor: pointer;
-  min-width: 3em;
-  text-align: center;
+  position: relative;
   transition:
+    transform 0.3s ease,
     color 0.3s ease,
     border-color 0.3s ease,
     background 0.3s ease,
     box-shadow 0.4s ease;
 }
+.time-scale-btn .ico-clock {
+  display: block;
+  transition: transform 0.4s cubic-bezier(0.4, 1.6, 0.5, 1);
+}
 .time-scale-btn:hover {
+  transform: translateY(-2px);
+  background: var(--glass-strong);
   color: var(--hud-fg);
-  border-color: rgba(255, 255, 255, 0.55);
+}
+.time-scale-btn:hover .ico-clock {
+  transform: scale(1.08);
 }
 .time-scale-btn:active {
-  transform: scale(0.94);
+  transform: translateY(0) scale(0.94);
 }
-.time-scale-btn.is-fast {
+/* 三档加速指示点：底部三个小圆点，按 data-tier 依次点亮 */
+.time-dots {
+  position: absolute;
+  inset: auto auto -3px 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  pointer-events: none;
+}
+.time-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+/* tier 1 (100×)：1 个点亮 */
+.time-scale-btn[data-tier="1"] .time-dot:nth-child(-n+1) {
+  background: #ffd27a;
+  box-shadow: 0 0 4px rgba(255, 200, 110, 0.9);
+}
+/* tier 2 (1000×)：2 个点亮 */
+.time-scale-btn[data-tier="2"] .time-dot:nth-child(-n+2) {
+  background: #ffc24a;
+  box-shadow: 0 0 4px rgba(255, 200, 110, 0.9);
+}
+/* tier 3 (10000×)：3 个全亮 */
+.time-scale-btn[data-tier="3"] .time-dot {
+  background: #ffb020;
+  box-shadow: 0 0 5px rgba(255, 200, 110, 1);
+}
+/* 加速时按钮点亮 + 发光，随档位增强 */
+.time-scale-btn[data-tier="1"] {
   color: #fff;
-  border-color: rgba(255, 220, 150, 0.7);
-  background: rgba(190, 150, 70, 0.45);
+  border-color: rgba(255, 220, 150, 0.55);
+  background: rgba(190, 150, 70, 0.3);
+  box-shadow: 0 0 10px rgba(255, 200, 110, 0.35);
+}
+.time-scale-btn[data-tier="2"] {
+  background: rgba(190, 150, 70, 0.4);
   box-shadow:
-    0 0 14px rgba(255, 200, 110, 0.55),
-    inset 0 0 8px rgba(255, 230, 160, 0.3);
+    0 0 14px rgba(255, 200, 110, 0.5),
+    inset 0 0 6px rgba(255, 230, 160, 0.25);
+}
+.time-scale-btn[data-tier="3"] {
+  background: rgba(190, 150, 70, 0.5);
+  box-shadow:
+    0 0 18px rgba(255, 200, 110, 0.65),
+    inset 0 0 8px rgba(255, 230, 160, 0.35);
+}
+/* 时钟指针旋转速度随档位递增：1×静止、100×慢、1000×中、10000×快 */
+.time-scale-btn .ico-clock polyline {
+  transform-origin: 12px 12px;
+}
+.time-scale-btn[data-tier="1"] .ico-clock polyline {
+  animation: clock-spin 8s linear infinite;
+}
+.time-scale-btn[data-tier="2"] .ico-clock polyline {
+  animation: clock-spin 2s linear infinite;
+}
+.time-scale-btn[data-tier="3"] .ico-clock polyline {
+  animation: clock-spin 0.5s linear infinite;
+}
+@keyframes clock-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 .time-scale-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
   pointer-events: none;
-}
-@media (max-width: 640px) {
-  .time-scale-btn {
-    padding: 3px 8px;
-    min-width: 2.6em;
-  }
 }
 
 /* ================= 天气开关（雨 / 闪电） ================= */
@@ -233,6 +295,43 @@ body {
 @keyframes bolt-pulse {
   0%, 46%, 54%, 100% { filter: brightness(1); }
   49%, 51% { filter: brightness(2); }
+}
+
+/* 风力激活态：青色发光（区别于雨的蓝、闪电的金） */
+#weather-wind.is-active {
+  background: rgba(100, 200, 200, 0.45);
+  box-shadow:
+    0 0 18px rgba(120, 220, 220, 0.6),
+    inset 0 0 10px rgba(180, 240, 240, 0.35);
+  color: #e8fcfc;
+}
+#weather-wind[data-level="2"].is-active {
+  background: rgba(80, 190, 190, 0.6);
+  box-shadow:
+    0 0 22px rgba(120, 230, 230, 0.8),
+    inset 0 0 12px rgba(180, 245, 245, 0.45);
+}
+/* 风力徽标：只在随机(auto)态显示，固定档(微风/强风)不显示 */
+#weather-wind .weather-badge {
+  background: #6ec8c8;
+  box-shadow: 0 0 6px rgba(120, 220, 220, 0.9);
+  opacity: 0;
+}
+#weather-wind.is-auto .weather-badge {
+  opacity: 1;
+  animation: wind-auto-pulse 2.4s ease-in-out infinite;
+}
+@keyframes wind-auto-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+/* 强风时风图标摇摆，呼应风吹动感 */
+#weather-wind[data-level="2"].is-active .ico-wind {
+  animation: wind-sway 2.2s ease-in-out infinite;
+}
+@keyframes wind-sway {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
 }
 
 /* ================= 中央标语 ================= */

@@ -176,28 +176,59 @@
       applyWeather();
     });
 
-  /* ---------- 时间流速：1× → 100× → 1000× → 10000× → 1× ---------- */
+  /* ---------- 时间流速：1× → 100× → 1000× → 10000× → 1×（时钟图标，不显示数字） ---------- */
   const timeScaleBtn = document.getElementById("time-scale");
   const TIME_SCALES = [1, 100, 1000, 10000];
+  const TIME_LABELS = ["真实时间", "100× 加速", "1000× 加速", "10000× 加速"];
   let timeScaleIdx = 0;
   function applyTimeScale() {
     const scale = TIME_SCALES[timeScaleIdx];
     if (window.GalokOcean && window.GalokOcean.setTimeScale)
       window.GalokOcean.setTimeScale(scale);
     if (timeScaleBtn) {
-      timeScaleBtn.textContent = scale + "×";
-      timeScaleBtn.classList.toggle("is-fast", scale > 1);
+      // 不显示数字：用 data-tier（0-3）驱动 CSS 三档加速指示点 + 发光
+      timeScaleBtn.setAttribute("data-tier", String(timeScaleIdx));
       timeScaleBtn.setAttribute(
         "title",
-        `时间流速：${scale}×${scale > 1 ? "（加速昼夜）" : "（真实时间）"}`,
+        `时间流速：${TIME_LABELS[timeScaleIdx]}`,
       );
-      timeScaleBtn.setAttribute("aria-label", `时间流速 ${scale} 倍，点击切换`);
+      timeScaleBtn.setAttribute(
+        "aria-label",
+        `时间流速 ${TIME_LABELS[timeScaleIdx]}，点击切换`,
+      );
     }
   }
   if (timeScaleBtn)
     timeScaleBtn.addEventListener("click", () => {
       timeScaleIdx = (timeScaleIdx + 1) % TIME_SCALES.length;
       applyTimeScale();
+    });
+
+  /* ---------- 风力开关：无风 → 微风 → 强风 → 随机 → 无风 ---------- */
+  const windBtn = document.getElementById("weather-wind");
+  const WIND_MODES = ["off", "low", "high", "auto"];
+  const WIND_LABEL = { off: "无风", low: "微风", high: "强风", auto: "随机" };
+  let windIdx = 3; // 默认 auto（随机风速）
+  function applyWind() {
+    const mode = WIND_MODES[windIdx];
+    if (window.GalokOcean && window.GalokOcean.setWind)
+      window.GalokOcean.setWind(mode);
+    if (windBtn) {
+      windBtn.classList.toggle("is-active", mode !== "off");
+      windBtn.classList.toggle("is-auto", mode === "auto");
+      // data-level 用于 CSS 强度样式：0=off, 1=low, 2=high, 3=auto
+      windBtn.setAttribute("data-level", String(windIdx));
+      windBtn.setAttribute("title", `风力：${WIND_LABEL[mode]}`);
+      windBtn.setAttribute(
+        "aria-label",
+        `风力${WIND_LABEL[mode]}，点击切换`,
+      );
+    }
+  }
+  if (windBtn)
+    windBtn.addEventListener("click", () => {
+      windIdx = (windIdx + 1) % WIND_MODES.length;
+      applyWind();
     });
 
   /* ---------- 视角切换：自动 → 日出 → 日落 → 月升 → 月落 → 自动（单按钮循环） ---------- */
@@ -379,6 +410,7 @@
     syncTheme();
     applyWeather(); // 同步按钮初始状态（默认 auto 随机）
     applyTimeScale(); // 同步时间流速按钮初始状态（默认 1×）
+    applyWind(); // 同步风力按钮初始状态（默认无风）
     tickClock();
     requestAnimationFrame(updateBuoyancy);
   }

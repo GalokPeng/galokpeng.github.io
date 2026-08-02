@@ -95,6 +95,11 @@
       get weatherState() {
         return { rainIntensity: 0, flash: 0, cloudDarken: 0 };
       },
+      // 无 WebGL 时风力开关为空操作
+      setWind() {},
+      get windState() {
+        return { level: 0, target: 0 };
+      },
       getTimeScale() {
         return 1;
       },
@@ -140,6 +145,13 @@
     uniform float uFlash;          // 0-1 闪电闪光强度
     uniform float uCloudDarken;   // 0-1 乌云暗化（暴风雨时云变灰沉）
     uniform float uLightningSeed; // 闪电纹随机种子
+    // 风力系统：影响云飘速、水面浪高、雨滴偏向
+    uniform float uWindLevel;     // 0-1 风力等级（即时生效）
+    uniform vec2  uWindDir;       // 风向（xz 平面单位向量，平滑旋转）
+    uniform vec2  uWindOffset;    // 累积云漂移位移（积分 dir*level*dt，风变时云不跳批）
+    // 星空与极光
+    uniform float uStarSeed;      // 星空随机种子（按日期变化，每天星空布局不同）
+    uniform float uAurora;        // 极光强度 0-1（高纬度+夜晚+随机概率才>0）
 
     float hash13(vec3 p){
       p = fract(p * 0.1031);
@@ -179,20 +191,40 @@
 
     float cloudField(vec3 dir, float t){
       float projection = 1.0 / (0.24 + max(dir.y, 0.0));
-      // 风速大幅提高，让云层明显飘动；drift 让云形随时间"变动"（不只是平移）。
-      vec2 wind = vec2(t * 0.11, t * 0.035);
-      vec2 drift = vec2(t * 0.011, -t * 0.0055);
-      // 缓慢旋转采样坐标，让云朵形状本身随时间演化（卷云拉伸感）。
-      float ang = t * 0.014;
+      // 云漂移 = 累积风位移（JS端积分 dir*level*dt）：风变时云保持形状只改漂速，不跳批
+      vec2 windOff = uWindOffset;
+      // 缓慢旋转采样坐标，让云朵形状本身随时间演化（卷云拉伸感）。恒定速率，与风力无关
+      float ang = t * 0.004;
       mat2 rot = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
-      vec2 base = rot * (dir.xz * projection * 1.75) + wind;
+      vec2 base = rot * (dir.xz * projection * 1.75) + windOff;
       vec2 p = base;
-      float broad = cloudNoise(p * 0.72 + drift);
-      float detail = cloudNoise(p * 2.15 + vec2(4.2, -1.7) + drift * 1.6);
-      float shape = broad * 0.78 + detail * 0.22;
+      // fbm 4 层叠加：粗轮廓 + 中细节 + 细节 + 微纹，增加云的蓬松体积感和不规则边缘
+      float n = cloudNoise(p * 0.72) * 0.50;
+      n += cloudNoise(p * 1.85 + vec2(4.2, -1.7)) * 0.27;
+      n += cloudNoise(p * 3.7 + vec2(8.1, 3.3)) * 0.15;
+      n += cloudNoise(p * 7.4 + vec2(2.5, 6.7)) * 0.08;
       float threshold = mix(0.76, 0.43, uCloudCover);
-      float cloud = smoothstep(threshold, threshold + 0.13, shape);
+      float cloud = smoothstep(threshold, threshold + 0.10, n);
       return cloud * smoothstep(0.015, 0.13, dir.y);
+    }
+
+    // 高空卷云层：薄纱状，与低层积云共享旋转和漂移方向（同步飘动，只是一层云的高低层次）
+    // 高空风稍快（1.15×），但方向与积云一致，视觉上是同一片云系的纵深，而非两层独立云
+    float cirrusField(vec3 dir, float t){
+      if (dir.y < 0.12) return 0.0;
+      // 与 cloudField 共享旋转矩阵，保证两层旋转同步
+      float ang = t * 0.004;
+      mat2 rot = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
+      float projection = 1.0 / (0.12 + dir.y);
+      // 漂移方向与积云相同（uWindOffset），仅速率稍快（1.15×，高空风强）
+      vec2 windOff = uWindOffset * 1.15;
+      vec2 base = rot * (dir.xz * projection * 2.8) + windOff;
+      vec2 p = base;
+      float n = cloudNoise(p * 0.9) * 0.60;
+      n += cloudNoise(p * 2.3 + vec2(7.3, 2.1)) * 0.40;
+      float threshold = mix(0.74, 0.55, uCloudCover * 0.6);
+      float cloud = smoothstep(threshold, threshold + 0.06, n);
+      return cloud * smoothstep(0.12, 0.30, dir.y) * 0.55;
     }
 
     // 视线 (ro, rd) 到 3D 线段 (a,b) 的最短距离。
@@ -257,9 +289,12 @@
         if (dropExist < 0.01) continue;
         // 雨滴 y：随时间下落并循环（世界空间向下）
         float dropY = yTop - mod(t * fallSpeed + hash21(cid) * ySpan, ySpan);
-        // 雨滴是竖直短线段：dropY → dropY+0.45
+        // 风让雨滴倾斜：真实物理 atan(风速/雨滴终端速度9m/s)
+        // level=0.3(3m/s)→倾角18°、level=0.8(12m/s)→倾角53°
+        // dropB 在风向上偏移 lean，垂直下落 0.45，倾角=atan(lean/0.45)
+        float lean = uWindLevel * 0.6;
         vec3 dropA = vec3(dxz.x, dropY, dxz.y);
-        vec3 dropB = vec3(dxz.x, dropY + 0.45, dxz.y);
+        vec3 dropB = vec3(dxz.x + uWindDir.x * lean, dropY + 0.45, dxz.y + uWindDir.y * lean);
         vec3 pa = p - dropA, ba = dropB - dropA;
         float hh = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-4), 0.0, 1.0);
         float distToDrop = length(pa - ba * hh);
@@ -370,10 +405,10 @@
     // 故先把世界方向转到相机空间再做透视投影。
     vec3 toCameraSpace(vec3 w){
       float cy = cos(uCameraYaw), sy = sin(uCameraYaw);
-      float cp = cos(uCameraPitch), sp = sin(uCameraPitch);
-      // 先绕 y 转 -yaw
+      // 引入有效俯仰角，替代原本的 2D UV 偏移
+      float effectivePitch = uCameraPitch - uHorizonUv * 0.8;
+      float cp = cos(effectivePitch), sp = sin(effectivePitch);
       vec3 v = vec3(cy * w.x - sy * w.z, w.y, sy * w.x + cy * w.z);
-      // 再绕 x 转 -pitch
       return vec3(v.x, cp * v.y + sp * v.z, -sp * v.y + cp * v.z);
     }
 
@@ -388,7 +423,8 @@
     }
 
     vec3 proceduralStars(vec3 eq, float scale, float threshold, float t){
-      vec2 p = octahedralMap(eq) * scale;
+      // 用 uStarSeed 偏移采样坐标：每天星空布局不同（真实星空随地球公转渐变）
+      vec2 p = octahedralMap(eq) * scale + vec2(uStarSeed * 17.3, uStarSeed * 29.7);
       vec2 id = floor(p), f = fract(p);
       float presence = hash21(id + scale);
       vec2 center = 0.18 + hash22(id + 31.7) * 0.64;
@@ -400,7 +436,10 @@
       vec3 warm = vec3(1.0, 0.72, 0.50);
       vec3 cold = vec3(0.62, 0.78, 1.0);
       vec3 starColor = mix(warm, cold, smoothstep(0.25, 0.78, temperature));
-      float twinkle = 0.95 + 0.05 * sin(t * mix(1.1, 2.3, temperature) + presence * 91.0);
+      // 大气闪烁（scintillation）：真实星闪幅度可达 30-50%，亮星闪得更明显
+      float twinkleSpeed = mix(0.8, 2.6, temperature) + presence * 3.0;
+      float twinkle = 0.65 + 0.35 * sin(t * twinkleSpeed + presence * 91.0 + uStarSeed * 6.0);
+      twinkle *= 0.7 + 0.3 * sin(t * twinkleSpeed * 1.7 + presence * 47.0);
       return starColor * point * (0.38 + energy * 1.85) * twinkle;
     }
 
@@ -409,9 +448,39 @@
       return 1.0 - smoothstep(0.0, 0.5 * radius * radius, metric);
     }
 
+    // 极光：高纬度+夜晚+太阳风活动时才出现（JS端按概率控制 uAurora）
+    // 真实极光：绿色最常见（低空氧557.7nm），底部红色（630nm），顶部紫色（氮）
+    // 帘幕状垂直纹理，随时间缓慢波动，朝磁极方向（北半球=北方天空）
+    vec3 auroraColor(vec3 dir, float t){
+      if (uAurora < 0.01) return vec3(0.0);
+      // 极光在北方天空（z 负方向）低空（15-55°高度），朝北越正越强
+      float northness = smoothstep(0.1, 0.6, -dir.z);
+      float heightBand = smoothstep(0.12, 0.30, dir.y) * (1.0 - smoothstep(0.50, 0.72, dir.y));
+      if (northness * heightBand < 0.01) return vec3(0.0);
+      // 帘幕：水平方向用噪声生成垂直条纹，垂直方向有亮度梯度
+      float t2 = t * 0.08;
+      float curtain = valueNoise(vec2(dir.x * 6.0 + t2, dir.y * 3.5)) * 0.55;
+      curtain += valueNoise(vec2(dir.x * 14.0 - t2 * 1.3, dir.y * 5.0)) * 0.30;
+      curtain += valueNoise(vec2(dir.x * 28.0 + t2 * 0.7, dir.y * 8.0)) * 0.15;
+      curtain = pow(max(curtain, 0.0), 2.2);
+      // 垂直波动：帘幕底部亮顶部暗，模拟极光从沉降粒子激发
+      float vGrad = smoothstep(0.45, 0.15, dir.y);
+      curtain *= vGrad;
+      // 颜色随高度：底部红→中部绿（最亮）→顶部紫
+      float h = smoothstep(0.13, 0.55, dir.y);
+      vec3 green = vec3(0.20, 1.00, 0.42);  // 557.7nm 氧绿线
+      vec3 red   = vec3(1.00, 0.32, 0.22);  // 630nm 氧红线
+      vec3 purple = vec3(0.48, 0.22, 0.78); // 氮紫线
+      vec3 col = mix(red, green, smoothstep(0.0, 0.35, h));
+      col = mix(col, purple, smoothstep(0.55, 0.85, h));
+      return col * curtain * northness * heightBand * uAurora * 0.7;
+    }
+
     // 返回水面高度；disp 是 Gerstner 轨道位移，glow 是局部浪尖能量。
     float waveField(vec2 p, float t, out vec2 disp, out float glow){
       float h = 0.0; disp = vec2(0.0); glow = 0.0;
+      // 风力影响浪高和陡峭度：风大浪急，风小浪平
+      float windChoppy = uChoppy * (0.6 + uWindLevel * 0.8);
       for (int i = 0; i < 14; i++){
         vec4 w = uWaves[i];
         float k = length(w.xy);
@@ -423,7 +492,7 @@
         h += w.z * (c + 0.18 * steepness * cos(2.0 * phase));
         // Gerstner 水平位移与波幅同量纲；原来多除一次 k 会把长波过度拉伸。
         // 陡峭度限制：k*w.z*uChoppy 必须 < π 才不自交，0.55*0.5=0.275 远低于 π。
-        disp += (w.xy / k) * w.z * s * uChoppy;
+        disp += (w.xy / k) * w.z * s * windChoppy;
       }
       // 多波叠加后对总位移做软限制，防止局部陡峭度溢出导致网格自交/翻转。
       {
@@ -480,14 +549,25 @@
       float sunHeight = uSunDir.y;
       float daylight = 1.0 - uNight;
 
-      // 大气底色 + 晨昏时的局部 Mie 散射。暖色只聚集在太阳方向，不会染橙整条地平线。
-      vec3 col = mix(uSkyHorizon, uSkyZenith, pow(y, 0.48));
+      // 大气底色 + 晨昏时的局部 Mie 散射。暖色用 uCelestialColor（JS端已区分日出金粉/日落深红）。
+      // 渐变指数 0.6：天顶深蓝更集中于高处，与地平线浅蓝形成更强层次对比（保留 uniform 以维持日夜/乌云/晨昏逻辑）
+      vec3 col = mix(uSkyHorizon, uSkyZenith, pow(y, 0.6));
       float twilight = exp(-pow((sunHeight + 0.035) / 0.19, 2.0));
       float sunAureole = pow(sunDot, mix(5.0, 15.0, daylight));
-      col += vec3(1.0, 0.25, 0.065) * twilight * sunAureole * (0.24 + 0.76 * horizon);
-      col += uCelestialColor * pow(sunDot, 72.0) * uSunVisibility * 0.42;
+      col += uCelestialColor * twilight * sunAureole * (0.24 + 0.76 * horizon);
+      // 太阳光晕多层化：近距强核（白）+ 中距大气散射晕（低空红橙/高空白）+ 远距辉光
+      // 真实太阳不是固定圆：低空大气厚光晕大而红，高空光晕小而白
+      // 光晕系数收窄：避免太阳周围大片天空被洗白，保住天顶深蓝的层次感
+      float sunH = max(sunHeight, 0.0);
+      float haloLow = pow(sunDot, 28.0);   // 大气散射晕，范围较大
+      float haloCore = pow(sunDot, 180.0); // 近距强核
+      vec3 haloColor = mix(uCelestialColor, vec3(1.0, 0.98, 0.92), smoothstep(0.0, 0.25, sunH));
+      col += haloColor * haloLow * uSunVisibility * (0.18 + 0.20 * twilight);
+      col += vec3(1.0, 0.98, 0.95) * haloCore * uSunVisibility * 0.50;
 
       float clouds = cloudField(dir, t);
+      float cirrus = cirrusField(dir, t);
+      float totalClouds = clamp(max(clouds, cirrus * 0.65), 0.0, 1.0);
 
       if (uNight > 0.015){
         vec3 eq = horizontalToEquatorial(dir);
@@ -500,10 +580,52 @@
         // IAU 银北极（RA 12h51m, Dec +27.13°）定义真实银河平面。
         const vec3 galacticNorth = vec3(-0.867666, -0.198076, 0.455984);
         float galacticDistance = abs(dot(eq, galacticNorth));
-        float milkyBand = exp(-pow(galacticDistance / 0.105, 1.45));
-        float milkyDust = valueNoise(octahedralMap(eq) * 46.0 + 11.0);
-        vec3 milkyWay = vec3(0.20, 0.25, 0.34) * milkyBand
-                      * mix(0.28, 1.0, milkyDust) * 0.34;
+
+        // 银河带基本轮廓：调整指数衰减，使其边缘更柔和
+        // 将 0.12 缩小到 0.06，让银河带收窄；提高指数到 1.8 增加边缘的对比度
+        float milkyBand = exp(-pow(galacticDistance / 0.06, 1.8));
+
+        // 1. 生成银河专属的"密集群星"（取代原本斑块状的 FBM 噪声）
+        // 使用极高频的空间映射来生成细小的星尘，让银河由"星点"而非"云斑"组成
+        vec2 starDustUv = octahedralMap(eq) * 550.0 + vec2(uStarSeed * 7.3);
+        float starDustNoise = hash21(floor(starDustUv));
+        // 提取高亮星点，结合微弱的时间函数闪烁
+        float starDust = smoothstep(0.85, 1.0, starDustNoise) * (0.6 + 0.4 * sin(t * 1.5 + starDustNoise * 100.0));
+
+        // 2. 柔和的星际气体底色（作为星尘的微弱衬托，彻底消除强烈的斑块感）
+        vec2 gUv = octahedralMap(eq) * 18.0;
+        float gas = valueNoise(gUv) * 0.5 + valueNoise(gUv * 3.0) * 0.25;
+
+        // 3. 细腻的暗星云裂缝（保留银河的结构感）
+        float dustLanes = valueNoise(gUv * 4.0 + vec2(13.7, 5.1));
+        float darkRift = smoothstep(0.40, 0.75, dustLanes);
+
+        // 4. 颜色交叉与混合：更加合理、自然的星族色彩过渡
+        const vec3 galacticCenter = normalize(vec3(-0.472, -0.485, -0.737));
+        float toCenter = max(dot(eq, galacticCenter), 0.0);
+
+        // 核心区：年老恒星密集，偏明亮的黄/香槟色
+        vec3 coreColor = vec3(0.85, 0.65, 0.40);
+        // 盘面中段：星际尘埃与繁星混合，暖灰紫
+        vec3 midColor  = vec3(0.45, 0.40, 0.50);
+        // 边缘散落区：年轻恒星，偏深邃的冷蓝
+        vec3 edgeColor = vec3(0.12, 0.18, 0.35);
+
+        // 利用到盘面的距离(milkyBand)进行基础过渡
+        vec3 baseGasColor = mix(edgeColor, midColor, milkyBand);
+        // 叠加中心高亮色彩，加入少量 gas 噪声让颜色有机的交织互相渗透，而非死板渐变
+        float coreIntensity = pow(toCenter, 3.5) * milkyBand;
+        vec3 milkyColor = mix(baseGasColor, coreColor, coreIntensity + gas * 0.15);
+
+        // 5. 合成银河：柔和气体底色 + 密集的星尘发光 - 暗星云遮挡
+        // 星点颜色继承所处区域的色彩并大幅提亮，模拟群星璀璨
+        // 将 4.5 降到 1.5（减弱星尘亮度）
+        vec3 starDustColor = milkyColor * starDust * 1.5;
+
+        vec3 milkyWay = (milkyColor * gas * 0.35 + starDustColor)
+                      * milkyBand
+                      * (1.0 - darkRift * 0.6)
+                      * 0.40;
 
         // 主要亮星使用真实 J2000 赤经/赤纬，可随季节和恒星时转动。
         vec3 catalog = vec3(0.0);
@@ -518,7 +640,9 @@
         catalog += vec3(1.00, 0.60, 0.42) * catalogStar(eq, vec3(-0.344844, -0.826400, -0.445135), 0.0018) * 1.5; // Antares
         catalog += vec3(0.76, 0.84, 1.00) * catalogStar(eq, vec3( 0.010129,  0.007900,  0.999917), 0.0016) * 1.25; // Polaris
 
-        col += (stars + milkyWay + catalog) * clearSky * (1.0 - clouds * 0.92);
+        col += (stars + milkyWay + catalog) * clearSky * (1.0 - totalClouds * 0.92);
+        // 极光：在星空之上、云层之下渲染（云会遮挡极光）
+        col += auroraColor(dir, t) * clearSky * (1.0 - totalClouds * 0.88);
       }
 
       // 日面：屏幕空间正圆。球面角距离 1-dot 在透视投影下会变椭圆（水平 fov 拉伸
@@ -529,9 +653,9 @@
       float sunDisk = 0.0;
       if (sunCam.z > 0.0){
         float dirInvZ = 1.05 / max(dirCam.z, 0.05);
-        vec2 dirScreen = vec2(dirCam.x * dirInvZ / 1.15, dirCam.y * dirInvZ + uHorizonUv);
+        vec2 dirScreen = vec2(dirCam.x * dirInvZ / 1.15, dirCam.y * dirInvZ);
         float sunInvZ = 1.05 / sunCam.z;
-        vec2 sunScreen = vec2(sunCam.x * sunInvZ / 1.15, sunCam.y * sunInvZ + uHorizonUv);
+        vec2 sunScreen = vec2(sunCam.x * sunInvZ / 1.15, sunCam.y * sunInvZ);
         float sunScreenR = sunInvZ * 0.0366;   // 角半径 2.1° 的屏幕投影（真实 0.27°，7.8× 兼顾可见性）
         float sunScreenDist = length(dirScreen - sunScreen);
         sunDisk = (1.0 - smoothstep(sunScreenR * 0.82, sunScreenR * 1.05, sunScreenDist)) * uSunVisibility;
@@ -541,6 +665,7 @@
       col += uCelestialColor * sunDisk * 7.2 * sunOcc;
 
       // 月面按真实太阳方向求终结线：新月、弦月、满月都由几何关系产生。
+      // 月相不是地球阴影遮挡，而是月亮自身的明暗面（Wikipedia: "caused by the Moon's shadow on itself"）
       vec3 moonReference = abs(uMoonDir.y) > 0.94 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
       vec3 moonRight = normalize(cross(moonReference, uMoonDir));
       vec3 moonUp = normalize(cross(uMoonDir, moonRight));
@@ -564,46 +689,59 @@
       vec3 moonAlbedo = mix(vec3(0.36, 0.40, 0.44), vec3(0.92, 0.93, 0.91), crater);
       moonAlbedo *= 0.72 + 0.28 * uMoonPhase;
       // 地照：地球反射阳光照亮月面暗侧，新月时最强（地球满相），满月时为零
-      vec3 earthshine = vec3(0.072, 0.092, 0.128) * (1.0 - uMoonPhase) * (1.0 - uMoonPhase);
+      // 极微弱（真实地照仅肉眼勉强可见），避免缺月时看到完整圆轮廓
+      vec3 earthshine = vec3(0.014, 0.018, 0.026) * (1.0 - uMoonPhase) * (1.0 - uMoonPhase);
       vec3 moonColor = mix(earthshine, moonAlbedo, moonLit);
+      // 月盘可见度随明暗渐变：dark 侧月盘几乎不可见（仅 5%），避免缺月时看到外框圆
+      // 真实月相：暗面是月亮自身的夜面，不反光，肉眼看不到圆轮廓
+      float diskVis = mix(0.05, 1.0, smoothstep(-0.08, 0.22, moonLit));
+      moonDisk *= diskVis;
       // 低空月光大气散射：月光经厚大气层瑞利散射，短波(蓝)被散射掉，剩长波(红橙)。
-      // 月出/月落时月亮低空偏橙红，升高后变回银白（真实大气折射效应）。
-      float moonAtmo = 1.0 - smoothstep(0.0, 0.35, uMoonDir.y);
+      // 月出/月落时月亮低空偏橙红，升高后渐变回银白（扩大过渡范围，避免突兀消失）
+      float moonAtmo = 1.0 - smoothstep(0.0, 0.55, uMoonDir.y);
       vec3 moonLowColor = vec3(1.0, 0.55, 0.30);
-      moonColor = mix(moonColor, moonLowColor * (moonLit * 0.7 + 0.3), moonAtmo * 0.6);
+      moonColor = mix(moonColor, moonLowColor * (moonLit * 0.7 + 0.3), moonAtmo * 0.65);
       // 云层遮挡月面：月光较柔，薄云也能明显遮蔽；厚云遮挡 88%。
       float moonOcc = 1.0 - moonCloudOcc * mix(0.85, 0.95, uCloudDarken);
       col += moonColor * moonDisk * uMoonVisibility * 2.15 * moonOcc;
       float moonHalo = pow(max(dot(dir, uMoonDir), 0.0), 720.0);
-      // 月晕：低空偏暖橙晕，高空偏冷蓝晕；满月时最强
-      vec3 moonHaloColor = mix(vec3(0.55, 0.35, 0.20), vec3(0.30, 0.40, 0.56), smoothstep(0.0, 0.3, uMoonDir.y));
+      // 月晕：低空偏暖橙晕，高空偏冷蓝晕；满月时最强（过渡范围与月盘一致）
+      vec3 moonHaloColor = mix(vec3(0.55, 0.35, 0.20), vec3(0.30, 0.40, 0.56), smoothstep(0.0, 0.5, uMoonDir.y));
       col += moonHaloColor * moonHalo * uMoonVisibility * (0.3 + 0.7 * uMoonPhase) * 0.26 * moonOcc;
 
       // 云层最后合成，因此会正确遮挡星光与日月，同时接受晨昏暖光和月光。
-      vec3 cloudNight = vec3(0.025, 0.038, 0.070)
+      // 无月夜云层极暗（仅微弱天光），避免星空上叠加"固定灰云"的视觉
+      vec3 cloudNight = vec3(0.025,0.038,0.070)
                       + vec3(0.12, 0.17, 0.25) * uMoonVisibility * uMoonPhase;
       vec3 cloudDay = mix(vec3(0.42, 0.48, 0.52), vec3(0.94, 0.96, 0.97), smoothstep(0.03, 0.75, y));
       vec3 cloudColor = mix(cloudNight, cloudDay, daylight);
+      // 3D 体积感：厚云中心自阴影（变暗），云顶被天光照亮、云底在阴影中
+      float cloudSelf = mix(1.0, 0.72, clouds * clouds);       // 厚云中心暗
+      float cloudTopLight = 0.55 + 0.45 * smoothstep(0.0, 0.45, dir.y); // 云顶亮云底暗
+      cloudColor *= cloudSelf * cloudTopLight;
       // 晚霞：太阳方向云层被染橙红；云遮日时云后与边缘透出暖光。
       float sunGlow = pow(sunDot, 4.0);
       cloudColor += uCelestialColor * sunGlow * (0.25 + 0.75 * twilight) * 0.6;
       // 云后透光：太阳被云遮挡时，云从背后被照亮（橙红→暖白），让遮日云团发光
-      float backLight = pow(sunDot, 3.0) * clouds;
+      float backLight = pow(sunDot, 3.0) * totalClouds;
       cloudColor += mix(vec3(1.0, 0.5, 0.2), vec3(1.0, 0.85, 0.65), backLight)
                   * backLight * (0.3 + 0.7 * twilight) * 0.7;
-      // 云边缘透光：薄云 / 云边缘处（clouds 中等）在太阳方向透出更亮的橙红
-      float edgeGlow = pow(sunDot, 6.0) * clouds * (1.0 - clouds) * 4.0;
+      // 云边缘透光：薄云 / 云边缘处在太阳方向透出更亮的橙红
+      float edgeGlow = pow(sunDot, 6.0) * totalClouds * (1.0 - totalClouds) * 4.0;
       cloudColor += vec3(1.0, 0.45, 0.15) * edgeGlow * (0.25 + 0.75 * twilight);
       // 暴风雨时乌云变暗变灰沉。
       cloudColor = mix(cloudColor, cloudColor * vec3(0.38, 0.40, 0.46), uCloudDarken);
+      // 卷云颜色偏冷蓝白，高空感；在低层云稀薄处叠加卷云层
+      vec3 cirrusColor = mix(cloudColor, vec3(0.88, 0.92, 0.98), 0.35);
+      cloudColor = mix(cloudColor, cirrusColor, cirrus * (1.0 - clouds));
       // 云层不透明度：厚云接近全遮（0.95），薄云半透，让云后日月被有效遮挡。
       // 白天云更实（0.95），黄昏/夜晚稍透（0.72）让月光微透。
-      float cloudOpacity = clouds * mix(0.72, 0.95, daylight);
+      float cloudOpacity = totalClouds * mix(0.72, 0.95, daylight);
       col = mix(col, cloudColor, cloudOpacity);
       // 闪电从云层内部发出：云体被瞬时从内部照亮（云越厚、越接近云底越明显）。
       // 在 mix 之后叠加，让天空与水面反射中的云层都正确接受闪电照明。
       if (uFlash > 0.05){
-        float cloudFlash = clouds * smoothstep(0.30, 0.0, dir.y) * uFlash;
+        float cloudFlash = totalClouds * smoothstep(0.30, 0.0, dir.y) * uFlash;
         col += vec3(0.92, 0.96, 1.0) * cloudFlash * 0.65;
       }
       return col;
@@ -626,8 +764,11 @@
 
       vec3 ro = vec3(0.0, 0.70, 0.0);
       // 本地视线（相机朝 +z 南），再旋转到世界空间（先绕 x 俯仰，再绕 y 偏航）
-      vec3 rdL = vec3(uv.x * 1.15, (uv.y - uHorizonUv), 1.05);
-      float cp = cos(uCameraPitch), sp = sin(uCameraPitch);
+      // 移除 uv.y 的硬偏移，生成标准的中心透视射线
+      vec3 rdL = vec3(uv.x * 1.15, uv.y, 1.05);
+      // 同步使用有效俯仰角
+      float effectivePitch = uCameraPitch - uHorizonUv * 0.8;
+      float cp = cos(effectivePitch), sp = sin(effectivePitch);
       float cy = cos(uCameraYaw),   sy = sin(uCameraYaw);
       vec3 rp = vec3(rdL.x, cp * rdL.y - sp * rdL.z, sp * rdL.y + cp * rdL.z);
       vec3 rd = normalize(vec3(cy * rp.x + sy * rp.z, rp.y, -sy * rp.x + cy * rp.z));
@@ -663,19 +804,24 @@
         float fres = fresnelWater(N, V);
 
         vec3 R = reflect(rd, N); R.y = abs(R.y);
-        vec3 reflCol = skyColor(R, t);
+        // 水面反射深色乘数：压低红绿通道，保留蓝通道，让倒影比天空更深邃（菲涅尔反射本应偏暗）
+        vec3 reflCol = skyColor(R, t) * vec3(0.8, 0.85, 1.0);
 
-        float depth = clamp(length(p) * 0.05, 0.0, 1.0);
-        vec3 waterCol = mix(uWaterShallow, uWaterDeep, depth);
+        // 水体深浅由波浪高度决定：波谷更深更暗，波峰更亮更透（真实水面体积感）
+        float waveHeightFactor = smoothstep(-0.5, 0.8, h);
+        vec3 waterCol = mix(uWaterDeep, uWaterShallow, waveHeightFactor);
         waterCol *= 0.45 + 0.55 * max(N.y, 0.0);
         vec3 skyLight = skyColor(vec3(0.0, 1.0, 0.0), t);
         waterCol *= 0.6 + 0.4 * (skyLight.r + skyLight.g + skyLight.b) / 3.0;
+        // 深夜对整体水面颜色进行压暗，消除乳白雾气感
+        waterCol *= mix(1.0, 0.35, uNight);
 
         col = mix(waterCol, reflCol, fres);
 
         // 环境月光：满月时整片水面被冷月光均匀提亮，避免夜晚水面纯黑。
         // 与镜面月光不同，这是来自天空散射的间接月光，弥漫在水面上。
-        col += vec3(0.045, 0.060, 0.090) * uMoonVisibility * uMoonPhase * (1.0 - moonCloudOcc * 0.7);
+        // 压暗深夜环境月光，剔除乳白色杂光，让深夜海面保持深邃纯黑
+        col += vec3(0.012, 0.018, 0.035) * uMoonVisibility * uMoonPhase * (1.0 - moonCloudOcc * 0.8);
 
         vec3 Hh = normalize(uSunDir + V);
         float ndh = max(dot(N, Hh), 0.0);
@@ -686,9 +832,10 @@
 
         vec3 moonHalf = normalize(uMoonDir + V);
         float moonNdh = max(dot(N, moonHalf), 0.0);
-        // 月光镜面：主高光更亮更宽（照亮水面），副光晕扩散开让整片水面泛起冷月光
-        float moonSpec = pow(moonNdh, 1100.0) * 6.5 + pow(moonNdh, 90.0) * 0.12;
-        col += vec3(0.72, 0.82, 1.00) * moonSpec * uMoonVisibility * uMoonPhase * (1.0 - moonCloudOcc * 0.85);
+        // 月光镜面：收拢核心高光(增加pow指数)，大幅降低亮度乘数，减少副光晕泛白
+        float moonSpec = pow(moonNdh, 1800.0) * 2.5 + pow(moonNdh, 150.0) * 0.03;
+        // 收窄月光高光，使用更深的宝蓝色，防止夜晚水面大面积泛白
+        col += vec3(0.15, 0.35, 0.65) * moonSpec * uMoonVisibility * uMoonPhase * (1.0 - moonCloudOcc * 0.9);
 
         float ss = max(dot(N, uSunDir), 0.0);
         col += vec3(0.10, 0.35, 0.30) * pow(ss, 2.0) * 0.06 * uSunVisibility * (1.0 - sunCloudOcc * 0.9);
@@ -698,12 +845,18 @@
 
         float slope = length(vec2(hR - hL, hU - hD)) / (2.0 * e);
         float foam = smoothstep(0.38, 0.78, slope) * smoothstep(0.03, 0.24, h);
-        col = mix(col, vec3(0.88, 0.96, 0.98), foam * 0.16);
+        // 高频噪声打碎白沫边缘，模拟真实泡沫的碎裂拉丝质感
+        float foamNoise = valueNoise(p * 5.0) * 0.5 + 0.5;
+        foam *= foamNoise;
+        col = mix(col, vec3(0.95, 0.98, 1.0), foam * 0.35);
 
-        float distanceHaze = smoothstep(18.0, 85.0, tt);
-        col = mix(col, uSkyHorizon, distanceHaze * 0.16);
+        // 指数雾：远处水面丝滑消融入天空，避免硬切线
+        float fogDensity = 0.012;
+        float fogFactor = 1.0 - exp(-tt * fogDensity);
+        col = mix(col, uSkyHorizon, fogFactor);
       }
 
+      // 地平线带：视线接近水平时柔和过渡到天色，避免水面与天空之间出现硬边
       float band = 1.0 - smoothstep(0.0, 0.05, abs(rd.y));
       col = mix(col, uSkyHorizon, band * 0.55);
 
@@ -718,10 +871,14 @@
         col += vec3(0.82, 0.88, 1.0) * uFlash * 0.32;  // 整体瞬时加亮（降低，避免淹没折线）
       }
 
-      col = 1.0 - exp(-col * 0.85);
+      // 暗角 + 曝光
       float vig = 1.0 - 0.16 * dot(uv * 0.5, uv * 0.5);
       col *= vig;
-      col = pow(col, vec3(0.88));
+      col *= 1.2;
+      // ACES 电影级色调映射：自然的高光压制和色彩饱和度
+      col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);
+      // 标准 Gamma 2.2 校正
+      col = pow(col, vec3(1.0 / 2.2));
       gl_FragColor = vec4(col, 1.0);
     }`;
 
@@ -780,6 +937,11 @@
     "uLightningSeed",
     "uCameraYaw",
     "uCameraPitch",
+    "uWindLevel",
+    "uWindDir",
+    "uWindOffset",
+    "uStarSeed",
+    "uAurora",
   ].forEach((n) => (U[n] = gl.getUniformLocation(prog, n)));
 
   /* ---------------- 尺寸 ---------------- */
@@ -976,6 +1138,26 @@
       moonElevation: Math.asin(moonDir[1]),
     };
   }
+
+  // 天气状态（需在 computePalette 之前声明，palette 会读取 cloudDarken 调整天空颜色）
+  const weather = {
+    rainMode: "auto", // off | on | auto
+    lightningMode: "auto",
+    cloudLevel: 0, // 当前云层厚度 0-1
+    cloudDarken: 0, // 当前乌化程度 0-1（独立于厚度）
+    rainIntensity: 0, // 当前雨强 0-1
+    rainTarget: 0,
+    flash: 0,
+    flashSeq: [],
+    lightningActive: false,
+    lightningEndAt: 0,
+    nextLightningAt: -1, // 首次 updateWeather 时基于 realTimeOffset 初始化
+    boltSeed: 0,
+    // 手动模式临时覆盖（on 模式强制推进积云）
+    manualBoost: false,
+    _lastRealTime: 0, // 上帧 realTimeOffset，用于算 weatherDt
+  };
+
   function computePalette(date) {
     const sky = astronomyAt(date);
     // 始终使用真实天文方位与高度角，太阳东升西落、月亮按真实轨迹运行。
@@ -1004,42 +1186,80 @@
     const twilight = civilTwi + nauticalTwi * 0.7; // 兼容旧变量（暖色合成）
     const nightness = 1 - smoothRange(-16, -4, sunH);
 
-    // 天顶：深夜黑 → 天文/航海深蓝 → 白天蓝；正午 dayBrightness 提亮到更浅蓝白
-    let skyZenith = mixRgb([0.004, 0.008, 0.03], [0.16, 0.48, 0.76], daylight);
+    // 天顶：深夜黑 → 天文/航海深蓝 → 白天更深的蓝；正午 dayBrightness 轻微提亮
+    // 天气影响：乌云满天时天空更暗更灰沉（cloudDarken 越大越压抑）
+    const cd = (weather && weather.cloudDarken) || 0;
+    // 晴天蓝度指数：基于日期的低频正弦叠加，缓慢变化，偶尔出现深蓝天
+    // 多频叠加避免周期感，pow 让大部分日子接近正常、少数日子明显更蓝
+    const dayOfYear = Math.floor(
+      (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000,
+    );
+    const blueBlend =
+      0.5 +
+      0.5 *
+        Math.sin(dayOfYear * 0.052) *
+        Math.sin(dayOfYear * 0.017 + 1.3) *
+        Math.sin(dayOfYear * 0.0083 + 2.7);
+    // 0-1 蓝度增益：强制每天都使用最高级别的深蓝天空和海水
+    const blueness = 1.0;
+    // 深蓝目标色（清澈夏日天空）：比常规天顶蓝更纯更饱和（修改为更深邃的宝蓝色）
+    const deepBlueZenith = [0.02, 0.12, 0.40];
+    const deepBlueHorizon = [0.08, 0.32, 0.65];
+    // 仅在晴天（cd 小）才让蓝度显现，乌云时不叠加深蓝
+    const clearSky = 1 - cd;
+    let skyZenith = mixRgb([0.004, 0.008, 0.03], [0.10, 0.36, 0.68], daylight);
     skyZenith = mixRgb(
       skyZenith,
-      [0.34, 0.60, 0.84],
-      dayBrightness * daylight * 0.55,
+      [0.20, 0.46, 0.74],
+      dayBrightness * daylight * 0.35,
     );
+    // 晴天深蓝增益（按日期缓慢变化，不突兀）
+    skyZenith = mixRgb(skyZenith, deepBlueZenith, blueness * clearSky * daylight);
+    // 乌云时天顶压暗、去蓝偏灰（真实阴天天空灰沉）
+    skyZenith = mixRgb(skyZenith, [0.18, 0.20, 0.24], cd * 0.55 * daylight);
     skyZenith = mixRgb(skyZenith, [0.06, 0.09, 0.18], astroTwi * 0.7);
     skyZenith = mixRgb(skyZenith, [0.075, 0.105, 0.235], nauticalTwi * 0.6);
-    skyZenith = mixRgb(skyZenith, [0.12, 0.10, 0.18], civilTwi * 0.4);
-    // 地平线：夜黑 → 曙暮光暖紫 → 白天浅蓝；黄金时刻强暖橙、正午偏白
-    let skyHorizon = mixRgb([0.018, 0.028, 0.072], [0.63, 0.8, 0.88], daylight);
+    skyZenith = mixRgb(skyZenith, [0.12, 0.1, 0.18], civilTwi * 0.4);
+    // 地平线：夜黑 → 曙暮光暖紫 → 白天蓝；黄金时刻强暖橙（降低过白）
+    let skyHorizon = mixRgb([0.018, 0.028, 0.072], [0.42, 0.66, 0.80], daylight);
     skyHorizon = mixRgb(
       skyHorizon,
-      [0.78, 0.82, 0.88],
-      dayBrightness * daylight * 0.4,
+      [0.58, 0.74, 0.84],
+      dayBrightness * daylight * 0.3,
     );
+    // 晴天深蓝增益同步作用于地平线
+    skyHorizon = mixRgb(skyHorizon, deepBlueHorizon, blueness * clearSky * daylight);
+    // 乌云时地平线压暗去蓝（避免远方海平面过白）
+    skyHorizon = mixRgb(skyHorizon, [0.22, 0.24, 0.28], cd * 0.6 * daylight);
     skyHorizon = mixRgb(skyHorizon, [0.95, 0.45, 0.18], goldenHour * 0.65);
     skyHorizon = mixRgb(skyHorizon, [0.45, 0.18, 0.16], civilTwi * 0.55);
-    skyHorizon = mixRgb(skyHorizon, [0.10, 0.08, 0.16], nauticalTwi * 0.5);
+    skyHorizon = mixRgb(skyHorizon, [0.1, 0.08, 0.16], nauticalTwi * 0.5);
     // 水面亮度梯度（比天空稍窄，水面反射更集中于高太阳角）
     const waterDay = smoothRange(-2, 50, sunH);
-    const waterDeep = mixRgb([0.008, 0.025, 0.055], [0.025, 0.25, 0.36], waterDay);
-    const waterShallow = mixRgb(
+    let waterDeep = mixRgb(
+      [0.008, 0.025, 0.055],
+      [0.025, 0.25, 0.36],
+      waterDay,
+    );
+    let waterShallow = mixRgb(
       [0.035, 0.105, 0.17],
       [0.12, 0.52, 0.67],
       waterDay,
     );
+
+    // 【新增】让海水也跟随"晴天蓝度指数"，在特定天气下变成深海宝蓝
+    const deepBlueWater = [0.01, 0.08, 0.28];      // 深海宝蓝
+    const deepBlueShallow = [0.04, 0.25, 0.50];    // 深海浅水过渡蓝
+    waterDeep = mixRgb(waterDeep, deepBlueWater, blueness * clearSky * daylight);
+    waterShallow = mixRgb(waterShallow, deepBlueShallow, blueness * clearSky * daylight);
     // 日出/日落光色区分（真实气象学：日出空气清澈偏金粉，日落气溶胶多偏深红）
     // 用太阳高度角变化方向判断：dh/dt > 0 = 日出（上升），< 0 = 日落（下降）
     const skyLater = astronomyAt(new Date(date.getTime() + 12 * 60000));
     const sunRising = skyLater.sunElevation > sky.sunElevation;
     // 日出：金黄淡橙偏粉；日落：深红血橙饱和。低空时差异最明显，高空统一偏白
     const sunLowColor = sunRising
-      ? [1.0, 0.60, 0.32]   // 日出：金粉淡橙
-      : [0.95, 0.22, 0.10]; // 日落：深红血橙
+      ? [1.0, 0.6, 0.32] // 日出：金粉淡橙
+      : [0.95, 0.22, 0.1]; // 日落：深红血橙
     const celestialColor = mixRgb(
       sunLowColor,
       [1.0, 0.95, 0.8],
@@ -1261,11 +1481,10 @@
   // 与 shader cloudField 完全同步：给定天空方向 + 时间 + 云量，返回 0~1 云密度
   function cloudFieldJS(dirX, dirY, dirZ, t, cloudCover) {
     const projection = 1.0 / (0.24 + Math.max(dirY, 0.0));
-    const windX = t * 0.11,
-      windY = t * 0.035;
-    const driftX = t * 0.011,
-      driftY = -t * 0.0055;
-    const ang = t * 0.014;
+    // 云漂移 = 累积位移（环境基础 + 风力，与 shader 同步，风变时云不跳批）
+    const windX = wind.offsetX;
+    const windY = wind.offsetY;
+    const ang = t * 0.004;
     const ca = Math.cos(ang),
       sa = Math.sin(ang);
     // rot * (dir.xz * projection * 1.75) + wind
@@ -1273,14 +1492,13 @@
     const dz = dirZ * projection * 1.75;
     const baseX = ca * dx + sa * dz + windX;
     const baseY = -sa * dx + ca * dz + windY;
-    const broad = _cloudNoise(baseX * 0.72 + driftX, baseY * 0.72 + driftY);
-    const detail = _cloudNoise(
-      baseX * 2.15 + 4.2 + driftX * 1.6,
-      baseY * 2.15 - 1.7 + driftY * 1.6,
-    );
-    const shape = broad * 0.78 + detail * 0.22;
+    // fbm 4 层（与 shader 同步）
+    let n = _cloudNoise(baseX * 0.72, baseY * 0.72) * 0.5;
+    n += _cloudNoise(baseX * 1.85 + 4.2, baseY * 1.85 - 1.7) * 0.27;
+    n += _cloudNoise(baseX * 3.7 + 8.1, baseY * 3.7 + 3.3) * 0.15;
+    n += _cloudNoise(baseX * 7.4 + 2.5, baseY * 7.4 + 6.7) * 0.08;
     const threshold = 0.76 + (0.43 - 0.76) * cloudCover;
-    const cloud = _smoothstep(threshold, threshold + 0.13, shape);
+    const cloud = _smoothstep(threshold, threshold + 0.1, n);
     return cloud * _smoothstep(0.015, 0.13, dirY);
   }
   // 查询水面 (x,z) 上方是否有乌云：返回 0~1 云密度
@@ -1288,7 +1506,13 @@
     // 从相机 (0, 0.7, 0) 看向 (x, 4, z) 方向 ≈ normalize(x, 3.3, z)
     const len = Math.hypot(x, 3.3, z) || 1;
     const cloudCover = CLOUD_COVER + weather.cloudDarken * (1 - CLOUD_COVER);
-    return cloudFieldJS(x / len, 3.3 / len, z / len, realTimeOffset % 3600, cloudCover);
+    return cloudFieldJS(
+      x / len,
+      3.3 / len,
+      z / len,
+      realTimeOffset % 3600,
+      cloudCover,
+    );
   }
 
   /* ============================================================
@@ -1322,7 +1546,9 @@
 
   // 日期种子：年*10000+月*100+日，同一天得同种子
   function dateSeedOf(date) {
-    return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+    return (
+      date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate()
+    );
   }
 
   // 生成今日天气剧本：1-3 个天气事件，每个事件是一个云层周期
@@ -1349,13 +1575,23 @@
       const hasRain = rng() < 0.6;
       const rainIntensity = hasRain ? 0.3 + rng() * 0.6 : 0;
       // 雨在成熟期中段开始，持续到成熟期末
-      const rainStart = hasRain ? matureStart + matureHours * (0.2 + rng() * 0.2) : 0;
-      const rainEnd = hasRain ? matureStart + matureHours * (0.7 + rng() * 0.2) : 0;
+      const rainStart = hasRain
+        ? matureStart + matureHours * (0.2 + rng() * 0.2)
+        : 0;
+      const rainEnd = hasRain
+        ? matureStart + matureHours * (0.7 + rng() * 0.2)
+        : 0;
       // 闪电：仅有雨时有 40% 概率，或独立干雷暴 10%
       const hasLightning = hasRain ? rng() < 0.4 : rng() < 0.1;
       events.push({
-        cloudStart, matureStart, decayStart, clearStart,
-        hasRain, rainIntensity, rainStart, rainEnd,
+        cloudStart,
+        matureStart,
+        decayStart,
+        clearStart,
+        hasRain,
+        rainIntensity,
+        rainStart,
+        rainEnd,
         hasLightning,
       });
       // 下个事件间隔 2-5 小时
@@ -1384,42 +1620,64 @@
       if (!raw) return null;
       const obj = JSON.parse(raw);
       return obj;
-    } catch (e) { return null; }
+    } catch (e) {
+      return null;
+    }
   }
   function saveStoredPlan(plan) {
     try {
-      localStorage.setItem(WEATHER_STORAGE_KEY, JSON.stringify({
-        dateSeed: plan.dateSeed,
-        events: plan.events,
-        savedAt: Date.now(),
-      }));
-    } catch (e) { /* localStorage 不可用时静默降级 */ }
+      localStorage.setItem(
+        WEATHER_STORAGE_KEY,
+        JSON.stringify({
+          dateSeed: plan.dateSeed,
+          events: plan.events,
+          savedAt: Date.now(),
+        }),
+      );
+    } catch (e) {
+      /* localStorage 不可用时静默降级 */
+    }
   }
 
   // 根据真实时间查剧本，得当前天气目标状态（不是瞬时值，是"该在哪个阶段"）
   // 返回 { phase, cloudTarget, rainTarget, lightningAllow }
   function queryPlanState(date) {
     const plan = getDailyPlan(date);
-    const hour = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+    const hour =
+      date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
     // 找当前落在哪个事件里
     let cur = null;
     for (const ev of plan.events) {
-      if (hour >= ev.cloudStart && hour < ev.clearStart) { cur = ev; break; }
+      if (hour >= ev.cloudStart && hour < ev.clearStart) {
+        cur = ev;
+        break;
+      }
     }
     if (!cur) {
       // 不在任何事件中：晴天
-      return { phase: "clear", cloudTarget: 0, rainTarget: 0, lightningAllow: false };
+      return {
+        phase: "clear",
+        cloudTarget: 0,
+        rainTarget: 0,
+        lightningAllow: false,
+      };
     }
     if (hour < cur.matureStart) {
       // 积云阶段：白云逐渐堆厚（还不乌）
-      return { phase: "building", cloudTarget: 0.95, rainTarget: 0, lightningAllow: false };
+      return {
+        phase: "building",
+        cloudTarget: 0.95,
+        rainTarget: 0,
+        lightningAllow: false,
+      };
     }
     if (hour < cur.decayStart) {
       // 成熟期：厚云，可能开始乌化+下雨
       const inRain = cur.hasRain && hour >= cur.rainStart && hour < cur.rainEnd;
       // 乌化目标：有雨或即将下雨(雨前10分钟)时渐乌
-      const rainApproaching = cur.hasRain && hour >= cur.rainStart - 1/6 && hour < cur.rainStart;
-      const darkenTarget = (inRain || rainApproaching) ? 0.85 : 0.15;
+      const rainApproaching =
+        cur.hasRain && hour >= cur.rainStart - 1 / 6 && hour < cur.rainStart;
+      const darkenTarget = inRain || rainApproaching ? 0.85 : 0.15;
       return {
         phase: "mature",
         cloudTarget: 1.0,
@@ -1429,7 +1687,8 @@
       };
     }
     // 消散阶段：云逐渐消散，乌化先退（雨停后乌云先变白再散）
-    const decayProgress = (hour - cur.decayStart) / (cur.clearStart - cur.decayStart);
+    const decayProgress =
+      (hour - cur.decayStart) / (cur.clearStart - cur.decayStart);
     return {
       phase: "decaying",
       cloudTarget: Math.max(0, 1.0 - decayProgress),
@@ -1439,22 +1698,38 @@
     };
   }
 
-  const weather = {
-    rainMode: "auto",   // off | on | auto
-    lightningMode: "auto",
-    cloudLevel: 0,      // 当前云层厚度 0-1
-    cloudDarken: 0,     // 当前乌化程度 0-1（独立于厚度）
-    rainIntensity: 0,   // 当前雨强 0-1
-    rainTarget: 0,
-    flash: 0,
-    flashSeq: [],
-    lightningActive: false,
-    lightningEndAt: 0,
-    nextLightningAt: 30 + Math.random() * 60,
-    boltSeed: 0,
-    // 手动模式临时覆盖（on 模式强制推进积云）
-    manualBoost: false,
+  // 风力状态：风来了直接改变云飘速/雨倾斜，不做level过渡（真实风是即时生效的）
+  // 风向用平滑旋转（真实风向逐渐偏转，不会瞬切180°）
+  // auto模式：每隔2-6分钟随机生成风力事件（随机level+随机方向）
+  const wind = {
+    level: 0, // 当前风力 0-1（即时生效，无过渡）
+    target: 0, // 目标风力（手动模式=固定值，auto=事件驱动）
+    dirX: 0.72, // 当前风向 x（平滑旋转跟随 targetDir）
+    dirZ: 0.69, // 当前风向 z
+    targetDirX: 0.72, // 目标风向 x
+    targetDirZ: 0.69, // 目标风向 z
+    mode: "off", // off | low | high | auto
+    nextWindEventAt: -1, // auto模式下次事件时刻（基于realTimeOffset）
+    // 累积云漂移位移：积分 wind.dir * wind.level * dt，风变时云不跳批只改漂速
+    offsetX: 0,
+    offsetY: 0,
   };
+  // 三档风力对应真实风速：low≈3m/s（蒲福风3级）、high≈12m/s（蒲福风6级）
+  const WIND_LEVEL_OF = { off: 0.0, low: 0.3, high: 0.8 };
+  function setWind(mode) {
+    wind.mode = mode;
+    if (mode === "off" || mode === "low" || mode === "high") {
+      wind.target = WIND_LEVEL_OF[mode];
+      wind.level = wind.target; // 即时生效，无过渡
+      // 手动切换时随机一个新风向（用户主动换风=风来了）
+      if (mode !== "off") {
+        const ang = Math.random() * Math.PI * 2;
+        wind.targetDirX = Math.cos(ang);
+        wind.targetDirZ = Math.sin(ang);
+      }
+    }
+    // auto模式：level和direction由事件驱动，不在setWind时设置
+  }
 
   function setWeather(opts) {
     if (!opts) return;
@@ -1481,6 +1756,10 @@
   }
 
   function updateWeather(t, dt) {
+    // 首次调用时基于 realTimeOffset 初始化闪电调度
+    if (weather.nextLightningAt < 0) {
+      weather.nextLightningAt = t + 30 + Math.random() * 60;
+    }
     const manualRain = weather.rainMode === "on";
     const manualLightning = weather.lightningMode === "on";
     const anyManual = manualRain || manualLightning;
@@ -1494,9 +1773,12 @@
     // ---- 目标值确定 ----
     let cloudTarget = planState.cloudTarget;
     let rainTarget = planState.rainTarget;
-    let darkenTarget = planState.darkenTarget !== undefined
-      ? planState.darkenTarget
-      : (planState.phase === "mature" ? 0.15 : 0);
+    let darkenTarget =
+      planState.darkenTarget !== undefined
+        ? planState.darkenTarget
+        : planState.phase === "mature"
+          ? 0.15
+          : 0;
 
     // 手动模式覆盖：on 强制推进到乌云+雨
     if (anyManual && weather.manualBoost) {
@@ -1507,18 +1789,25 @@
     // 手动关闭雨/闪电时，目标归零（但云层仍由剧本驱动，自然消散）
     if (weather.rainMode === "off") rainTarget = 0;
 
+    // 雨强随乌云覆盖率动态变化：乌云越厚越暗，雨越大（小雨→大雨的自然变化）
+    // cloudLevel=1 且 cloudDarken=0.85 时雨强为满值；白云厚但不乌时雨弱
+    rainTarget *= weather.cloudLevel * (0.3 + 0.7 * weather.cloudDarken);
+
     // ---- 平滑过渡（关键：不同变量用不同时间常数，模拟真实物理速度）----
     // 手动模式用更短时间常数（用户期望几十秒看到效果），自动模式用真实慢速
-    const cloudTau = weather.manualBoost ? 15.0 : 90.0;  // 手动 ~15s，自动 ~90s
-    weather.cloudLevel += (cloudTarget - weather.cloudLevel) * (1 - Math.exp(-dt / cloudTau));
+    const cloudTau = weather.manualBoost ? 15.0 : 90.0; // 手动 ~15s，自动 ~90s
+    weather.cloudLevel +=
+      (cloudTarget - weather.cloudLevel) * (1 - Math.exp(-dt / cloudTau));
 
     // cloudDarken：乌化速度中等（雨前10-15分钟渐乌，雨停后15-20分钟渐白）
     const darkenTau = weather.manualBoost ? 10.0 : 45.0;
-    weather.cloudDarken += (darkenTarget - weather.cloudDarken) * (1 - Math.exp(-dt / darkenTau));
+    weather.cloudDarken +=
+      (darkenTarget - weather.cloudDarken) * (1 - Math.exp(-dt / darkenTau));
 
     // rainIntensity：雨强变化较快（雨开始/停止约 1-2 分钟过渡）
     const rainTau = weather.manualBoost ? 6.0 : 20.0;
-    weather.rainIntensity += (rainTarget - weather.rainIntensity) * (1 - Math.exp(-dt / rainTau));
+    weather.rainIntensity +=
+      (rainTarget - weather.rainIntensity) * (1 - Math.exp(-dt / rainTau));
     weather.rainTarget = rainTarget;
 
     // ---- 雨滴打水面涟漪：只在有雨时生成 ----
@@ -1541,15 +1830,20 @@
     }
 
     // ---- 闪电：仅在剧本允许且有乌云时触发 ----
-    const canLightning = planState.lightningAllow || (manualLightning && weather.manualBoost);
-    const cloudThickEnough = weather.cloudLevel > 0.75 && weather.cloudDarken > 0.5;
+    const canLightning =
+      planState.lightningAllow || (manualLightning && weather.manualBoost);
+    const cloudThickEnough =
+      weather.cloudLevel > 0.75 && weather.cloudDarken > 0.5;
 
     if (
       weather.lightningMode !== "off" &&
       !weather.lightningActive &&
       t >= weather.nextLightningAt
     ) {
-      if (manualLightning || (weather.lightningMode === "auto" && canLightning && cloudThickEnough)) {
+      if (
+        manualLightning ||
+        (weather.lightningMode === "auto" && canLightning && cloudThickEnough)
+      ) {
         weather.lightningActive = true;
         const dur = 0.8 + Math.random() * 1.4;
         weather.lightningEndAt = t + dur;
@@ -1732,6 +2026,13 @@
     get weatherState() {
       return weather;
     },
+    // 风力开关：mode ∈ {"off","low","high"}，循环切换；风影响云飘速/水面/雨滴偏向
+    setWind(mode) {
+      setWind(mode);
+    },
+    get windState() {
+      return wind;
+    },
     // 时间流速调节：scale ∈ {1,2,5,10}，仅 auto 模式生效
     getTimeScale() {
       return timeScale;
@@ -1815,6 +2116,11 @@
   let realTimeOffset = 0;
   let perfTime = 0,
     last = start;
+  // 星空种子与极光状态（按日期缓存，避免每帧重新计算）
+  let starSeed = 0;
+  let auroraIntensity = 0;
+  let auroraBaseStrength = 0; // 当天极光基础强度（由日期种子决定）
+  let auroraDateCache = -1; // 缓存当天的极光决策（日期 key）
   resize();
   function frame(now) {
     perfTime = (now - start) / 1000;
@@ -1848,7 +2154,41 @@
     // 驱动云/水波相位，让它们随 timeScale 加速而同步加速。
     {
       const d = new Date(displayDateMs);
-      realTimeOffset = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
+      realTimeOffset =
+        d.getHours() * 3600 +
+        d.getMinutes() * 60 +
+        d.getSeconds() +
+        d.getMilliseconds() / 1000;
+      // 星空种子：按日期变化（每天星空布局不同）
+      // 真实星空随地球公转每日提前约4分钟，这里用日期做随机偏移模拟"每天不同"
+      const dayKey =
+        d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+      starSeed = ((dayKey * 2654435761) % 1000000) / 1000000;
+      // 极光：高纬度+夜晚+随机概率才出现
+      // 上海纬度31°（磁纬度~20°），极光极罕见，强太阳风暴时才可能看到
+      // 按日期决定当天是否有极光（约8%概率），强度随机，夜晚中间最强
+      if (dayKey !== auroraDateCache) {
+        auroraDateCache = dayKey;
+        const auroraRoll = ((dayKey * 40503) % 1000) / 1000;
+        // 纬度越高极光概率越大：上海(31°)约8%，高纬(60°+)约40%
+        const latFactor = Math.max(0, (SKY_LOCATION.latitude - 30) / 40);
+        const auroraChance = 0.08 + latFactor * 0.5;
+        if (auroraRoll < auroraChance) {
+          // 当天有极光：强度0.4-1.0随机
+          auroraBaseStrength = 0.4 + ((dayKey * 7919) % 600) / 1000;
+        } else {
+          auroraBaseStrength = 0;
+        }
+      }
+      // 极光只在夜晚出现，午夜最强（realTimeOffset 0-86400，午夜约0或86400）
+      // 用太阳高度角判断夜晚强度，平滑渐入渐出
+      if (auroraBaseStrength > 0 && p.nightness > 0.3) {
+        // 夜晚深度：nightness 0.3-1 映射到 0-1
+        const nightDepth = Math.max(0, (p.nightness - 0.3) / 0.7);
+        auroraIntensity = auroraBaseStrength * nightDepth;
+      } else {
+        auroraIntensity = 0;
+      }
     }
 
     // 相机姿态：拖动时直接同步，否则平滑跟随目标
@@ -1862,7 +2202,58 @@
     }
 
     maybeSpawnNatural(realTimeOffset);
-    updateWeather(perfTime, dt);
+    // updateWeather 用 realTimeOffset 推进，让雨/闪电节奏随 timeScale 加速
+    // realDt 是 realTimeOffset 的帧间增量（受 timeScale 影响），用于平滑过渡
+    {
+      let realDt = realTimeOffset - weather._lastRealTime;
+      if (realDt < 0) realDt = 0; // 跨午夜或重置时归零，避免负 dt
+      // 限制单帧最大推进，防止极高加速下 dt 过大导致状态跳变
+      if (realDt > 600) realDt = 600;
+      updateWeather(realTimeOffset, realDt);
+      weather._lastRealTime = realTimeOffset;
+
+      // ---- 风力系统 ----
+      // auto模式：每隔2-6分钟随机生成风力事件（随机level+随机方向）
+      if (wind.mode === "auto") {
+        if (wind.nextWindEventAt < 0)
+          wind.nextWindEventAt = realTimeOffset + 30 + Math.random() * 90;
+        if (realTimeOffset >= wind.nextWindEventAt) {
+          // 真实风速分布：多数时间微风，偶尔强风，偶尔无风
+          const r = Math.random();
+          if (r < 0.25)
+            wind.target = 0; // 25% 无风
+          else if (r < 0.75)
+            wind.target = 0.15 + Math.random() * 0.25; // 50% 微风
+          else wind.target = 0.5 + Math.random() * 0.35; // 25% 强风
+          wind.level = wind.target; // 即时生效
+          // 随机风向
+          const ang = Math.random() * Math.PI * 2;
+          wind.targetDirX = Math.cos(ang);
+          wind.targetDirZ = Math.sin(ang);
+          wind.nextWindEventAt = realTimeOffset + 120 + Math.random() * 240;
+        }
+      }
+      // 风向平滑旋转（真实风向逐渐偏转，约8秒完成转向）
+      const dirFollow = 1 - Math.exp(-realDt / 8.0);
+      const curAng = Math.atan2(wind.dirZ, wind.dirX);
+      const tgtAng = Math.atan2(wind.targetDirZ, wind.targetDirX);
+      let dAng = tgtAng - curAng;
+      while (dAng > Math.PI) dAng -= Math.PI * 2;
+      while (dAng < -Math.PI) dAng += Math.PI * 2;
+      const newAng = curAng + dAng * dirFollow;
+      wind.dirX = Math.cos(newAng);
+      wind.dirZ = Math.sin(newAng);
+      // 累积云漂移位移：环境基础漂移 + 风力漂移
+      // 真实世界即使"无风"也有微弱空气流动（热对流≈0.5m/s），云不会完全静止
+      // 风变时云保持形状只改漂速（不跳批），符合真实"风来了推着云走"
+      // 环境漂移用固定方向（东南），风力漂移用当前风向；均随 timeScale 加速
+      const baseDriftRate = 0.0015; // 无风时的环境漂移（极慢）
+      const windDriftRate = 0.012; // 风力漂移：level=0.3≈3m/s，level=0.8≈12m/s
+      wind.offsetX +=
+        (0.6 * baseDriftRate + wind.dirX * wind.level * windDriftRate) * realDt;
+      wind.offsetY +=
+        (0.8 * baseDriftRate + wind.dirZ * wind.level * windDriftRate) * realDt;
+    }
 
     gl.uniform2f(U.uResolution, W, H);
     gl.uniform1f(U.uTime, realTimeOffset);
@@ -1891,6 +2282,13 @@
     gl.uniform1f(U.uRainIntensity, weather.rainIntensity);
     gl.uniform1f(U.uFlash, weather.flash);
     gl.uniform1f(U.uLightningSeed, weather.boltSeed);
+    gl.uniform1f(U.uWindLevel, wind.level);
+    gl.uniform2f(U.uWindDir, wind.dirX, wind.dirZ);
+    gl.uniform2f(U.uWindOffset, wind.offsetX, wind.offsetY);
+    // 星空种子：按日期变化（每天星空布局不同，真实星空随地球公转渐变）
+    gl.uniform1f(U.uStarSeed, starSeed);
+    // 极光：高纬度+夜晚+随机概率（中低纬度罕见，强太阳风暴时才出现）
+    gl.uniform1f(U.uAurora, auroraIntensity);
     gl.uniform3f(U.uSkyZenith, p.skyZenith[0], p.skyZenith[1], p.skyZenith[2]);
     gl.uniform3f(
       U.uSkyHorizon,
@@ -1906,7 +2304,7 @@
       p.waterShallow[2],
     );
     gl.uniform1f(U.uHorizonUv, HORIZON_UV);
-    gl.uniform1f(U.uChoppy, 0.5);
+    gl.uniform1f(U.uChoppy, p.nightness > 0.5 ? 0.3 : 0.5);
     gl.uniform4fv(U.uWaves, waveUniform);
 
     // 涟漪渲染：按当前可见能量排序选 top 16，避免雨滴涟漪挤占槽位导致截停消失。

@@ -18,7 +18,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=20260801-16" />
+    <link rel="stylesheet" href="./style.css?v=20260802-06" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 4c4 6 8 9 8 14a8 8 0 0 1-16 0c0-5 4-8 8-14z' fill='%234a9fd6'/%3E%3C/svg%3E"
@@ -41,9 +41,24 @@
           id="time-scale"
           type="button"
           aria-label="调整时间流速"
-          title="时间流速：1×"
+          title="时间流速：1×（真实时间）"
+          data-tier="0"
         >
-          1×
+          <svg
+            class="ico-clock"
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+            <polyline points="12 7 12 12 15 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span class="time-dots" aria-hidden="true">
+            <span class="time-dot"></span>
+            <span class="time-dot"></span>
+            <span class="time-dot"></span>
+          </span>
         </button>
         <button
           class="weather-btn"
@@ -90,6 +105,31 @@
           <span class="weather-badge" aria-hidden="true"></span>
         </button>
         <button
+          class="weather-btn"
+          id="weather-wind"
+          type="button"
+          aria-label="切换风力"
+          title="风力开关：无风"
+        >
+          <svg
+            class="ico-wind"
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 8h11a3 3 0 1 0-3-3" />
+            <path d="M3 12h15a3 3 0 1 1-3 3" />
+            <path d="M3 16h7a2.5 2.5 0 1 1-2.5 2.5" />
+          </svg>
+          <span class="weather-badge" aria-hidden="true"></span>
+        </button>
+        <button
           class="view-toggle"
           id="view-toggle"
           type="button"
@@ -116,7 +156,7 @@
     <footer class="footer-hint" aria-hidden="true">
       <span>· 左右旋转，查看更多 ·</span>
     </footer>
-    <script src="./water.js?v=20260801-16"></script>
-    <script src="./app.js?v=20260801-16"></script>
+    <script src="./water.js?v=20260803-05"></script>
+    <script src="./app.js?v=20260803-03"></script>
   </body>
 </html>
