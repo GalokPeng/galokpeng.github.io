@@ -316,8 +316,9 @@
     // 类型：云内短闪(纯散射) / 云到水面(完整主干) / 云底短劈(到云底下方)。
     // 位置 xz 范围大，远处乌云也会有闪电（空间纵深）。每段按中点 y 判断云内/云外：
     // 云内段模糊散射，云外段清晰锯齿折线。所有线段在 3D 世界空间，用 raySegDist 投影。
-    float lightning3D(vec3 ro, vec3 rd, float seed, float flash){
-      if (flash < 0.25) return 0.0;
+    // 返回 vec3：x=白热核心(纯白)，y=电光蓝外晕，z=云内散射(暖白)，供 main 分层着色。
+    vec3 lightning3D(vec3 ro, vec3 rd, float seed, float flash){
+      if (flash < 0.25) return vec3(0.0);
       // 闪电类型：0=云内短闪(35%)，1=云到水面(40%)，2=云底短劈(25%)
       float typeRoll = hash13(vec3(seed, 100.0, 50.0));
       // 位置全方位分布（极坐标 0-2π）：旋转视角到任何方向都能看到闪电
@@ -353,44 +354,47 @@
       float ic23 = smoothstep(cT, cT + 0.6, (p2.y + p3.y) * 0.5);
       float ic34 = smoothstep(cT, cT + 0.6, (p3.y + p4.y) * 0.5);
       float ic45 = smoothstep(cT, cT + 0.6, (p4.y + p5.y) * 0.5);
-      // 云内散射光团（半径大、亮度低，模拟闪电在云内被云体扩散遮挡）
+      // 云内散射光团：保留 smoothstep 体积散射特性（云作为体积散射体，非点光源）
+      // 1/r² 会让云内闪变成点光源，丢失"云体扩散"的柔和感
       float inCloudGlow = (smoothstep(0.14, 0.0, d01) * ic01
                          + smoothstep(0.14, 0.0, d12) * ic12
                          + smoothstep(0.14, 0.0, d23) * ic23
                          + smoothstep(0.14, 0.0, d34) * ic34
                          + smoothstep(0.14, 0.0, d45) * ic45) * 0.35;
-      // 云外清晰折线（只对 y < 4 的段）
-      float trunkCore = smoothstep(0.028, 0.0, d01) * (1.0 - ic01)
-                      + smoothstep(0.028, 0.0, d12) * (1.0 - ic12)
-                      + smoothstep(0.028, 0.0, d23) * (1.0 - ic23)
-                      + smoothstep(0.028, 0.0, d34) * (1.0 - ic34)
-                      + smoothstep(0.028, 0.0, d45) * (1.0 - ic45);
-      // 云外最近段光晕（nearestOut 为 999 时 smoothstep 自然归零）
+      // 云外最近段（nearestOut 为 999 时自然归零）
       float nearestOut = 999.0;
       nearestOut = min(nearestOut, mix(d01, 999.0, step(0.5, ic01)));
       nearestOut = min(nearestOut, mix(d12, 999.0, step(0.5, ic12)));
       nearestOut = min(nearestOut, mix(d23, 999.0, step(0.5, ic23)));
       nearestOut = min(nearestOut, mix(d34, 999.0, step(0.5, ic34)));
       nearestOut = min(nearestOut, mix(d45, 999.0, step(0.5, ic45)));
-      float trunkGlow = smoothstep(0.09, 0.0, nearestOut) * 0.45;
-      float trunkBright = trunkCore + trunkGlow + inCloudGlow;
-      // 分叉：仅非云内短闪类型才有（云内短闪纯散射，无分叉）
+      // 物理光衰减：核心 1/r² 极细刺眼白心（HDR 过曝），外晕 1/r 宽广电光蓝
+      // 比 smoothstep 更锐利，模拟 30000K 等离子弧的刺眼感
+      float trunkCore = 0.0003 / (nearestOut * nearestOut + 0.0001);
+      float trunkGlow = 0.002 / (nearestOut + 0.01);
+      // 分叉：仅非云内短闪类型才有（云内短闪纯散射，无分叉），同样用 1/r² + 1/r
       float branchMask = step(0.35, typeRoll);
-      float branches = 0.0;
       vec3 b1s = p1;
       vec3 b1e = b1s + vec3((hash13(vec3(seed,8.1,1.0))-0.5)*2.0*off, -1.3, (hash13(vec3(seed,9.1,1.0))-0.5)*1.7*off);
-      branches += smoothstep(0.020, 0.0, raySegDist(ro, rd, b1s, b1e)) * 0.85 * branchMask;
+      float db1 = raySegDist(ro, rd, b1s, b1e);
       vec3 b2s = p3;
       vec3 b2e = b2s + vec3((hash13(vec3(seed,8.1,2.0))-0.5)*1.8*off, -1.1, (hash13(vec3(seed,9.1,2.0))-0.5)*1.6*off);
-      branches += smoothstep(0.020, 0.0, raySegDist(ro, rd, b2s, b2e)) * 0.8 * branchMask;
-      return (trunkBright + branches) * flash;
+      float db2 = raySegDist(ro, rd, b2s, b2e);
+      float branchCore = (0.00015 / (db1 * db1 + 0.0001) + 0.00015 / (db2 * db2 + 0.0001)) * branchMask;
+      float branchGlow = (0.001 / (db1 + 0.01) + 0.001 / (db2 + 0.01)) * branchMask;
+      // 分层返回：x=白热核心(主干+分叉)，y=电光蓝外晕(主干+分叉)，z=云内散射(暖白光团)
+      vec3 result;
+      result.x = (trunkCore + branchCore) * flash;
+      result.y = (trunkGlow + branchGlow) * flash;
+      result.z = inCloudGlow * flash;
+      return result;
     }
 
     // 多道闪电：每次闪光生成 1-3 道闪电，各自独立种子 → 不同方位与形态。
     // 主闪电必现，副闪电按概率出现且更暗，确保旋转到任何方向都能看到闪电。
     // 种子是 uniform，分支判断对全画面一致，GPU 无分支发散开销。
-    float lightningBolts(vec3 ro, vec3 rd, float seed, float flash){
-      float result = lightning3D(ro, rd, seed, flash);
+    vec3 lightningBolts(vec3 ro, vec3 rd, float seed, float flash){
+      vec3 result = lightning3D(ro, rd, seed, flash);
       float r2 = hash13(vec3(seed, 99.0, 88.0));
       if (r2 > 0.45) result += lightning3D(ro, rd, seed + 7.3, flash) * 0.72;
       float r3 = hash13(vec3(seed, 55.0, 44.0));
@@ -878,9 +882,16 @@
         col += vec3(0.55, 0.65, 0.78) * rain * 0.6;
       }
       if (uFlash > 0.05){
-        float bolt = lightningBolts(ro, rd, uLightningSeed, uFlash);
-        col += vec3(0.92, 0.96, 1.0) * bolt * 2.2;     // 3D 闪电折线（主干+分叉，多道全方位）
-        col += vec3(0.82, 0.88, 1.0) * uFlash * 0.32;  // 整体瞬时加亮（降低，避免淹没折线）
+        vec3 bolt = lightningBolts(ro, rd, uLightningSeed, uFlash);
+        // 昼夜挂钩：白天环境本身亮，闪电对像素的贡献应压低（叠加高光而非统治级爆闪）；
+        // 夜晚环境全黑，闪电全力释放做全局照明。uNight: 0=白天 1=深夜
+        // 系数 mix(0.3, 1.0, uNight)：正午0.3、黄昏0.51、深夜1.0
+        float flashGain = mix(0.3, 1.0, uNight);
+        // 分层着色：x=白热核心(纯白 HDR 过曝)，y=电光蓝外晕，z=云内散射(暖白)
+        col += vec3(1.0, 1.0, 1.0) * bolt.x * 2.2 * flashGain;
+        col += vec3(0.5, 0.7, 1.0) * bolt.y * 2.2 * flashGain;
+        col += vec3(0.92, 0.96, 1.0) * bolt.z * 2.2 * flashGain;
+        col += vec3(0.82, 0.88, 1.0) * uFlash * 0.32 * flashGain;  // 整体瞬时加亮
       }
 
       // 暗角 + 曝光
@@ -1766,14 +1777,17 @@
         if (weather.rainMode !== "on") weather.manualBoost = false;
       } else if (opts.lightning === "on") {
         weather.manualBoost = true;
+        // 强制立即触发：无视之前的冷却计时，0.1s 后劈下
+        // 用 perfTime（真实帧时间）而非 realTimeOffset，避免 timeScale 加速时冷却被拉远
+        weather.nextLightningAt = perfTime + 0.1;
       }
     }
   }
 
   function updateWeather(t, dt) {
-    // 首次调用时基于 realTimeOffset 初始化闪电调度
+    // 首次调用时基于 perfTime 初始化闪电调度（用真实帧时间，不受 timeScale 影响）
     if (weather.nextLightningAt < 0) {
-      weather.nextLightningAt = t + 30 + Math.random() * 60;
+      weather.nextLightningAt = perfTime + 30 + Math.random() * 60;
     }
     const manualRain = weather.rainMode === "on";
     const manualLightning = weather.lightningMode === "on";
@@ -1845,6 +1859,11 @@
     }
 
     // ---- 闪电：仅在剧本允许且有乌云时触发 ----
+    // 闪电调度/动画用 perfTime（真实帧时间），不受 timeScale 影响：
+    // 10000× 加速下 realTimeOffset 每帧跳 160s，若用 realTimeOffset 驱动，
+    // dur 0.8-2.2s 的闪电会在 1 帧内开始并结束，flashSeq 全部过期，看不到闪电。
+    // 天气状态（cloudLevel/cloudDarken）仍由 realTimeOffset 驱动的剧本推进，
+    // 确保云层快速演变时闪电触发条件也快速变化，但闪电动画以 1× 速度正常播放。
     const canLightning =
       planState.lightningAllow || (manualLightning && weather.manualBoost);
     const cloudThickEnough =
@@ -1853,7 +1872,7 @@
     if (
       weather.lightningMode !== "off" &&
       !weather.lightningActive &&
-      t >= weather.nextLightningAt
+      perfTime >= weather.nextLightningAt
     ) {
       if (
         manualLightning ||
@@ -1861,12 +1880,12 @@
       ) {
         weather.lightningActive = true;
         const dur = 0.8 + Math.random() * 1.4;
-        weather.lightningEndAt = t + dur;
+        weather.lightningEndAt = perfTime + dur;
         weather.flashSeq = [];
         let tt = 0;
         while (tt < dur) {
           weather.flashSeq.push({
-            at: t + tt,
+            at: perfTime + tt,
             dur: 0.06 + Math.random() * 0.09,
             v: 0.7 + Math.random() * 0.3,
           });
@@ -1874,22 +1893,22 @@
         }
         weather.boltSeed = Math.random() * 100;
       } else if (weather.lightningMode === "auto" && !canLightning) {
-        weather.nextLightningAt = t + 20 + Math.random() * 40;
+        weather.nextLightningAt = perfTime + 20 + Math.random() * 40;
       }
     }
     let flash = 0;
     for (let i = 0; i < weather.flashSeq.length; i++) {
       const p = weather.flashSeq[i];
-      const age = t - p.at;
+      const age = perfTime - p.at;
       if (age >= 0 && age < p.dur) {
         flash = Math.max(flash, p.v * (1 - age / p.dur));
       }
     }
-    if (weather.lightningActive && t >= weather.lightningEndAt) {
+    if (weather.lightningActive && perfTime >= weather.lightningEndAt) {
       weather.lightningActive = false;
       weather.flashSeq = [];
-      if (manualLightning) weather.nextLightningAt = t + 2 + Math.random() * 3;
-      else weather.nextLightningAt = t + 60 + Math.random() * 180;
+      if (manualLightning) weather.nextLightningAt = perfTime + 2 + Math.random() * 3;
+      else weather.nextLightningAt = perfTime + 60 + Math.random() * 180;
     }
     weather.flash = flash;
   }
