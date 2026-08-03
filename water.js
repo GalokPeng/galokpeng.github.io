@@ -662,7 +662,11 @@
         vec2 sunScreen = vec2(sunCam.x * sunInvZ / 1.15, sunCam.y * sunInvZ);
         float sunScreenR = sunInvZ * 0.0366;   // 角半径 2.1° 的屏幕投影（真实 0.27°，7.8× 兼顾可见性）
         float sunScreenDist = length(dirScreen - sunScreen);
-        sunDisk = (1.0 - smoothstep(sunScreenR * 0.82, sunScreenR * 1.05, sunScreenDist)) * uSunVisibility;
+        float sunEdge = smoothstep(sunScreenR * 0.65, sunScreenR * 1.05, sunScreenDist);
+        sunDisk = (1.0 - sunEdge) * uSunVisibility;
+        // 径向亮度渐变：中心最亮，边缘渐暗到与大气散射晕衔接，避免过曝成均匀白贴纸
+        float radialFade = 1.0 - smoothstep(0.0, 0.85, sunScreenDist / sunScreenR);
+        sunDisk *= mix(0.55, 1.0, radialFade);
       }
       // 云层遮挡日面：厚云（sunCloudOcc→1）遮挡 92%，薄云按密度渐变。乌云时遮挡更强。
       float sunOcc = 1.0 - sunCloudOcc * mix(0.92, 0.98, uCloudDarken);
@@ -696,9 +700,10 @@
       // 极微弱（真实地照仅肉眼勉强可见），避免缺月时看到完整圆轮廓
       vec3 earthshine = vec3(0.014, 0.018, 0.026) * (1.0 - uMoonPhase) * (1.0 - uMoonPhase);
       vec3 moonColor = mix(earthshine, moonAlbedo, moonLit);
-      // 月盘可见度随明暗渐变：dark 侧月盘几乎不可见（仅 5%），避免缺月时看到外框圆
+      // 月盘可见度随明暗渐变：dark 侧月盘几乎不可见（仅 2%），避免缺月时看到外框圆
       // 真实月相：暗面是月亮自身的夜面，不反光，肉眼看不到圆轮廓
-      float diskVis = mix(0.05, 1.0, smoothstep(-0.08, 0.22, moonLit));
+      // smoothstep 下限必须 ≥0：若 <0，moonLit=0 时 smoothstep 仍 >0，门控失效（曾因 -0.08 导致暗部 21.7% 可见）
+      float diskVis = mix(0.02, 1.0, smoothstep(0.0, 0.22, moonLit));
       moonDisk *= diskVis;
       // 低空月光大气散射：月光经厚大气层瑞利散射，短波(蓝)被散射掉，剩长波(红橙)。
       // 月出/月落时月亮低空偏橙红，升高后渐变回银白（扩大过渡范围，避免突兀消失）
@@ -711,7 +716,10 @@
       float moonHalo = pow(max(dot(dir, uMoonDir), 0.0), 720.0);
       // 月晕：低空偏暖橙晕，高空偏冷蓝晕；满月时最强（过渡范围与月盘一致）
       vec3 moonHaloColor = mix(vec3(0.55, 0.35, 0.20), vec3(0.30, 0.40, 0.56), smoothstep(0.0, 0.5, uMoonDir.y));
-      col += moonHaloColor * moonHalo * uMoonVisibility * (0.3 + 0.7 * uMoonPhase) * 0.26 * moonOcc;
+      // 月晕随月相衰减：弯月反射光总量远少于满月，月晕应更弱。
+      // pow(uMoonPhase, 0.5) 让弯月(uMoonPhase≈0.15)时 halo 仍有 0.387，但不至于勾勒出完整圆框
+      float haloPhase = pow(uMoonPhase, 0.5);
+      col += moonHaloColor * moonHalo * uMoonVisibility * (0.15 + 0.85 * haloPhase) * 0.26 * moonOcc;
 
       // 云层最后合成，因此会正确遮挡星光与日月，同时接受晨昏暖光和月光。
       // 无月夜云层极暗（仅微弱天光），避免星空上叠加"固定灰云"的视觉
