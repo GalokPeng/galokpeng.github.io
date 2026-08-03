@@ -152,6 +152,9 @@
     // 星空与极光
     uniform float uStarSeed;      // 星空随机种子（按日期变化，每天星空布局不同）
     uniform float uAurora;        // 极光强度 0-1（高纬度+夜晚+随机概率才>0）
+    // 云层时间：独立周期 mod，避免与 uTime 的 3600s mod 冲突导致云图案旋转跳变
+    // 周期 = 2π / 0.004 ≈ 1570.7963s，恰为云旋转一圈，mod 边界无缝衔接
+    uniform float uCloudTime;
 
     float hash13(vec3 p){
       p = fract(p * 0.1031);
@@ -194,7 +197,8 @@
       // 云漂移 = 累积风位移（JS端积分 dir*level*dt）：风变时云保持形状只改漂速，不跳批
       vec2 windOff = uWindOffset;
       // 缓慢旋转采样坐标，让云朵形状本身随时间演化（卷云拉伸感）。恒定速率，与风力无关
-      float ang = t * 0.004;
+      // 用 uCloudTime（周期 2π/0.004 无缝）而非 t（mod 3600 会在边界跳变 14.4rad≈2.29圈）
+      float ang = uCloudTime * 0.004;
       mat2 rot = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
       vec2 base = rot * (dir.xz * projection * 1.75) + windOff;
       vec2 p = base;
@@ -212,8 +216,8 @@
     // 高空风稍快（1.15×），但方向与积云一致，视觉上是同一片云系的纵深，而非两层独立云
     float cirrusField(vec3 dir, float t){
       if (dir.y < 0.12) return 0.0;
-      // 与 cloudField 共享旋转矩阵，保证两层旋转同步
-      float ang = t * 0.004;
+      // 与 cloudField 共享旋转矩阵，保证两层旋转同步（同样使用 uCloudTime）
+      float ang = uCloudTime * 0.004;
       mat2 rot = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
       float projection = 1.0 / (0.12 + dir.y);
       // 漂移方向与积云相同（uWindOffset），仅速率稍快（1.15×，高空风强）
@@ -942,6 +946,7 @@
     "uWindOffset",
     "uStarSeed",
     "uAurora",
+    "uCloudTime",
   ].forEach((n) => (U[n] = gl.getUniformLocation(prog, n)));
 
   /* ---------------- 尺寸 ---------------- */
@@ -1484,7 +1489,9 @@
     // 云漂移 = 累积位移（环境基础 + 风力，与 shader 同步，风变时云不跳批）
     const windX = wind.offsetX;
     const windY = wind.offsetY;
-    const ang = t * 0.004;
+    // 与 shader 同步：使用 uCloudTime 周期（2π/0.004），避免 t mod 3600 边界跳变
+    const cloudT = ((t % 1570.7963) + 1570.7963) % 1570.7963;
+    const ang = cloudT * 0.004;
     const ca = Math.cos(ang),
       sa = Math.sin(ang);
     // rot * (dir.xz * projection * 1.75) + wind
@@ -2046,14 +2053,18 @@
     },
     // 世界坐标 (x,y,z) → 屏幕投影，匹配 shader 相机模型（ro=(0,0.70,0)）。
     // 返回 {visible, px, py, scale, depth}；visible=false 表示在身后/太近。
+    // 与 fragment shader 保持一致：
+    //   1) 使用 effectivePitch = cameraPitch - HORIZON_UV * 0.8（地平线偏移吸收进俯仰角）
+    //   2) uv.y 原点在屏幕中心，无额外偏移（shader 已移除 uv.y 硬偏移）
     projectWorld(x, y, z) {
       const relX = x,
         relY = y - 0.7,
         relZ = z;
       const cy = Math.cos(cameraYaw),
         sy = Math.sin(cameraYaw);
-      const cp = Math.cos(cameraPitch),
-        sp = Math.sin(cameraPitch);
+      const effectivePitch = cameraPitch - HORIZON_UV * 0.8;
+      const cp = Math.cos(effectivePitch),
+        sp = Math.sin(effectivePitch);
       // R_y(-yaw)
       const vx = cy * relX - sy * relZ;
       const vy = relY;
@@ -2064,7 +2075,7 @@
       const cz = -sp * vy + cp * vz;
       if (cz < 0.2) return { visible: false };
       const ux = (cx / cz) * (1.05 / 1.15);
-      const uy = (cyy / cz) * 1.05 + HORIZON_UV;
+      const uy = (cyy / cz) * 1.05;
       const px = (ux * H + W) / 2;
       const py = (H * (1 - uy)) / 2;
       const scale = 2.35 / cz;
@@ -2257,6 +2268,9 @@
 
     gl.uniform2f(U.uResolution, W, H);
     gl.uniform1f(U.uTime, realTimeOffset);
+    // 云层时间：周期 2π/0.004 ≈ 1570.7963s，恰为云旋转一圈，mod 边界无缝
+    // 用安全取模（处理 realTimeOffset 理论上可能为负的边界情况）
+    gl.uniform1f(U.uCloudTime, ((realTimeOffset % 1570.7963) + 1570.7963) % 1570.7963);
     gl.uniform3f(U.uSunDir, p.sunDir[0], p.sunDir[1], p.sunDir[2]);
     gl.uniform3f(U.uMoonDir, p.moonDir[0], p.moonDir[1], p.moonDir[2]);
     gl.uniform3f(
