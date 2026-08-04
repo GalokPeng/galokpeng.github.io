@@ -183,12 +183,29 @@
       return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
     }
 
+    // 周期化 valueNoise：格点在 period 边界环绕，保证 mod(p, period) 无缝衔接。
+    // 用于云噪声：windOff 长期累加会溢出 highp float 精度，JS 端 mod 256 后
+    // 配合此函数可实现无缝循环（mod(p+256, 256) = mod(p, 256)，格点 hash 完全一致）。
+    // period=256 远大于视野内坐标范围（约 ±110），看不到重复图案。
+    float valueNoisePeriodic(vec2 p, float period){
+      p = mod(p, period);
+      vec2 i = floor(p), f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      // 格点环绕：i+1 超过 period 时回到 0，保证边界两侧 hash 连续
+      float a = hash21(i);
+      float b = hash21(mod(i + vec2(1.0, 0.0), period));
+      float c = hash21(mod(i + vec2(0.0, 1.0), period));
+      float d = hash21(mod(i + vec2(1.0, 1.0), period));
+      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    }
+
     float cloudNoise(vec2 p){
-      float n = valueNoise(p) * 0.53;
+      // 云噪声用周期版（period=256）：配合 JS 端 windOff mod 256 防溢出，且无缝循环
+      float n = valueNoisePeriodic(p, 256.0) * 0.53;
       p = mat2(0.80, -0.60, 0.60, 0.80) * p * 2.03 + 8.7;
-      n += valueNoise(p) * 0.29;
+      n += valueNoisePeriodic(p, 256.0) * 0.29;
       p = mat2(0.76, -0.65, 0.65, 0.76) * p * 2.11 + 3.1;
-      n += valueNoise(p) * 0.18;
+      n += valueNoisePeriodic(p, 256.0) * 0.18;
       return n;
     }
 
@@ -971,6 +988,9 @@
   /* ---------------- 尺寸 ---------------- */
   let W = 0,
     H = 0;
+  // renderScale = 实际渲染分辨率 / CSS 像素分辨率（受 dpr 和 MAX_PIXELS 双重限制）
+  // projectWorld 需要用它把物理像素换算回 CSS 像素，确保 DOM 定位正确
+  let renderScale = 1;
   const HORIZON_UV = 0.22;
   const MAX_PIXELS = 1.4e6;
   function resize() {
@@ -981,6 +1001,7 @@
     const total = cssW * cssH * s * s;
     if (total > MAX_PIXELS) s = Math.sqrt(MAX_PIXELS / (cssW * cssH));
     s = Math.max(0.5, s);
+    renderScale = s;
     W = Math.floor(cssW * s);
     H = Math.floor(cssH * s);
     canvas.width = W;
@@ -1482,20 +1503,39 @@
     const d = _hash21(ix + 1, iy + 1);
     return a + (b - a) * fx + (c + (d - c) * fx - (a + (b - a) * fx)) * fy;
   }
+  // 周期化 valueNoise：与 shader valueNoisePeriodic 同步，格点在 period 边界环绕
+  function _valueNoisePeriodic(px, py, period) {
+    // JS 安全取模（处理负数）：JS % 是余数非模，GLSL mod 负数得正
+    px = ((px % period) + period) % period;
+    py = ((py % period) + period) % period;
+    const ix = Math.floor(px),
+      iy = Math.floor(py);
+    let fx = px - ix,
+      fy = py - iy;
+    fx = fx * fx * (3 - 2 * fx);
+    fy = fy * fy * (3 - 2 * fy);
+    // 格点环绕：i+1 超过 period 时回到 0
+    const a = _hash21(ix, iy);
+    const b = _hash21((ix + 1) % period, iy);
+    const c = _hash21(ix, (iy + 1) % period);
+    const d = _hash21((ix + 1) % period, (iy + 1) % period);
+    return a + (b - a) * fx + (c + (d - c) * fx - (a + (b - a) * fx)) * fy;
+  }
   function _cloudNoise(px, py) {
-    let n = _valueNoise(px, py) * 0.53;
+    // 与 shader 同步：用周期版（period=256），配合 windOff mod 256 防溢出且无缝
+    let n = _valueNoisePeriodic(px, py, 256) * 0.53;
     // mat2(0.80,-0.60, 0.60,0.80) * p * 2.03 + 8.7
     let rx = 0.8 * px + 0.6 * py;
     let ry = -0.6 * px + 0.8 * py;
     rx = rx * 2.03 + 8.7;
     ry = ry * 2.03 + 8.7;
-    n += _valueNoise(rx, ry) * 0.29;
+    n += _valueNoisePeriodic(rx, ry, 256) * 0.29;
     // mat2(0.76,-0.65, 0.65,0.76) * p * 2.11 + 3.1
     let r2x = 0.76 * rx + 0.65 * ry;
     let r2y = -0.65 * rx + 0.76 * ry;
     r2x = r2x * 2.11 + 3.1;
     r2y = r2y * 2.11 + 3.1;
-    n += _valueNoise(r2x, r2y) * 0.18;
+    n += _valueNoisePeriodic(r2x, r2y, 256) * 0.18;
     return n;
   }
   function _smoothstep(e0, e1, x) {
@@ -2103,8 +2143,13 @@
       if (cz < 0.2) return { visible: false };
       const ux = (cx / cz) * (1.05 / 1.15);
       const uy = (cyy / cz) * 1.05;
-      const px = (ux * H + W) / 2;
-      const py = (H * (1 - uy)) / 2;
+      // px/py 用 CSS 像素（除以 renderScale），直接给 DOM 的 left/top 用。
+      // W/H 是物理像素，不除会偏到屏幕外（4K+150%缩放下差 50%）。
+      const cssW = W / renderScale,
+        cssH = H / renderScale;
+      const px = (ux * cssH + cssW) / 2;
+      const py = (cssH * (1 - uy)) / 2;
+      // scale 是 CSS 像素空间的缩放（DOM 元素尺寸用 CSS 像素，不受 dpr 影响）
       const scale = 2.35 / cz;
       return { visible: true, px, py, scale, depth: cz };
     },
@@ -2291,6 +2336,12 @@
         (0.6 * baseDriftRate + wind.dirX * wind.level * windDriftRate) * realDt;
       wind.offsetY +=
         (0.8 * baseDriftRate + wind.dirZ * wind.level * windDriftRate) * realDt;
+      // 安全取模防溢出：长期挂机 windOff 会累加到百万级，highp float 精度不足导致云格子化。
+      // 与 shader valueNoisePeriodic(p, 256) 配合：mod(windOff, 256) 在周期边界无缝
+      // （mod(p+256, 256) = mod(p, 256)，格点 hash 完全一致，无跳变）。
+      // JS % 是余数非模（负数得负），用 ((x%m)+m)%m 转为数学模，与 GLSL mod 一致。
+      wind.offsetX = ((wind.offsetX % 256) + 256) % 256;
+      wind.offsetY = ((wind.offsetY % 256) + 256) % 256;
     }
 
     gl.uniform2f(U.uResolution, W, H);
