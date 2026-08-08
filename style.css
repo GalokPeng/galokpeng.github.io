@@ -18,6 +18,23 @@
   box-sizing: border-box;
 }
 
+/* 加载淡入：遮盖 shader 编译/链接期间的冻结感。
+   .loading 下所有可见层 opacity:0；首帧绘制后 JS 移除 .loading，整体 0.6s 淡入 */
+body.loading #ocean-canvas,
+body.loading .hud,
+body.loading .tagline,
+body.loading .islands,
+body.loading .footer-hint {
+  opacity: 0;
+}
+#ocean-canvas,
+.hud,
+.tagline,
+.islands,
+.footer-hint {
+  transition: opacity 0.6s ease-out;
+}
+
 html,
 body {
   height: 100%;

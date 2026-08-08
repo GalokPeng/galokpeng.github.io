@@ -2432,6 +2432,9 @@
     gl.uniform4fv(U.uRipples, rippleUniform);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    // 首帧已提交 GPU，移除 loading 类触发整体淡入，遮盖 shader 编译期的冻结感
+    if (document.body.classList.contains("loading"))
+      document.body.classList.remove("loading");
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

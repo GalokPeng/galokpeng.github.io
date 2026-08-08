@@ -15,17 +15,20 @@
     <title>Galok · 海上浮岛</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- 字体异步加载：media=print 让浏览器不阻塞渲染，onload 后切回 all -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap"
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
-    <link rel="stylesheet" href="./style.css?v=20260802-06" />
+    <link rel="stylesheet" href="./style.css?v=20260803-14" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 4c4 6 8 9 8 14a8 8 0 0 1-16 0c0-5 4-8 8-14z' fill='%234a9fd6'/%3E%3C/svg%3E"
     />
   </head>
-  <body data-theme="auto">
+  <body data-theme="auto" class="loading">
     <!-- 海洋画布（背景层） -->
     <canvas id="ocean-canvas" aria-hidden="true"></canvas>
 
@@ -157,7 +160,7 @@
     <footer class="footer-hint" aria-hidden="true">
       <span>· 左右旋转，查看更多 ·</span>
     </footer>
-    <script src="./water.js?v=20260803-13"></script>
-    <script src="./app.js?v=20260803-03"></script>
+    <script src="./water.js?v=20260803-14" defer></script>
+    <script src="./app.js?v=20260803-03" defer></script>
   </body>
 </html>
