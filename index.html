@@ -13,15 +13,8 @@
       content="个人站点中转站 —— 漂浮在真实海水之上的入口"
     />
     <title>Galok · 海上浮岛</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- 字体异步加载：media=print 让浏览器不阻塞渲染，onload 后切回 all -->
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap"
-      media="print"
-      onload="this.media='all'"
-    />
+    <!-- 不外链 Google Fonts：fonts.gstatic.com 在国内被墙（ERR_CONNECTION_CLOSED），
+         直接用 CSS 里的系统字体回退链（苹方/微软雅黑/Segoe UI），加载更快且无报错 -->
     <link rel="stylesheet" href="./style.css?v=20260803-14" />
     <link
       rel="icon"
