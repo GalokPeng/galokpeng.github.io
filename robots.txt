@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 
 Sitemap: https://galok.cn/sitemap.xml
+Sitemap: https://books.galok.cn/sitemap.xml
+Sitemap: https://blog.galok.cn/sitemap.xml
