@@ -1,6 +1,6 @@
 /* Galok 静态资源缓存：让回访几乎瞬时 */
-const CACHE = 'galok-v1';
-const ASSETS = ['./', './index.html', './water.min.js'];
+const CACHE = 'galok-v2';
+const ASSETS = ['./', './index.html', './water.min.js', './lightblock-icon.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

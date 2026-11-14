@@ -32,6 +32,15 @@
       target: "_blank",
       accent: "#8a2bb1",
     },
+    {
+      type: "lightblock",
+      name: "轻块桌面",
+      desc: "APP · Windows 桌面",
+      url: "https://lightblock.galok.cn",
+      target: "_blank",
+      accent: "#5fc79e",
+      icon: "./lightblock-icon.png",
+    },
   ];
 
   /* ============== ② 页面标题（左上角品牌名） ============== */
@@ -46,7 +55,10 @@
   if (nameEl) nameEl.textContent = SITE_NAME;
 
   /* ---------- 卡片视觉模板 ---------- */
-  function visualHtml(type) {
+  function visualHtml(type, s) {
+    if (s && s.icon) {
+      return `<img class="site-icon" src="${s.icon}" alt="" />`;
+    }
     switch (type) {
       case "blog":
         return `
@@ -95,7 +107,7 @@
       el.innerHTML = `
         <div class="island-card">
           <div class="island-stripe"></div>
-          <div class="island-visual vis-${s.type || "link"}">${visualHtml(s.type)}</div>
+          <div class="island-visual vis-${s.type || "link"}">${visualHtml(s.type, s)}</div>
           <div class="island-foot">
             <div>
               <div class="island-name">${s.name}</div>
