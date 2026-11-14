@@ -1,159 +1,79 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#0d1838" />
     <meta name="google-site-verification" content="wwYQkhI3vHjQzLbLIv8aZAOjxPyctIldvmvCiEcLGao" />
-    <meta
-      name="description"
-      content="个人站点中转站 —— 漂浮在真实海水之上的入口"
-    />
+    <meta name="description" content="个人站点中转站 —— 漂浮在真实海水之上的入口" />
     <title>Galok · 海上浮岛</title>
-    <!-- 不外链 Google Fonts：fonts.gstatic.com 在国内被墙（ERR_CONNECTION_CLOSED），
-         直接用 CSS 里的系统字体回退链（苹方/微软雅黑/Segoe UI），加载更快且无报错 -->
-    <link rel="stylesheet" href="./style.css?v=20260803-14" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 4c4 6 8 9 8 14a8 8 0 0 1-16 0c0-5 4-8 8-14z' fill='%234a9fd6'/%3E%3C/svg%3E"
-    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 4c4 6 8 9 8 14a8 8 0 0 1-16 0c0-5 4-8 8-14z' fill='%234a9fd6'/%3E%3C/svg%3E" />
+    <link rel="preload" href="./water.min.js" as="script" fetchpriority="high" crossorigin="anonymous" />
+    <style>:root{--hud-fg:rgba(238,246,255,0.92);--hud-fg-dim:rgba(238,246,255,0.62);--glass:rgba(255,255,255,0.14);--glass-strong:rgba(255,255,255,0.22);--glass-border:rgba(255,255,255,0.35);--ink:#0b1f33;--shadow:0 18px 50px -18px rgba(6,30,60,0.55)}*{margin:0;padding:0;box-sizing:border-box}body.loading #ocean-canvas,body.loading .hud,body.loading .tagline,body.loading .islands,body.loading .footer-hint{opacity:0}#ocean-canvas,.hud,.tagline,.islands,.footer-hint{transition:opacity 0.6s ease-out}html,body{height:100%;overflow:hidden;background:#0a1830;font-family:"Noto Sans SC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}body{position:relative;color:var(--hud-fg);width:100vw;height:100dvh}#ocean-canvas{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;cursor:crosshair}.hud{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:clamp(14px,2.6vh,26px) clamp(16px,3.2vw,38px);pointer-events:none}.hud>*{pointer-events:auto}.hud-brand{display:flex;align-items:center;gap:10px;font-weight:500;letter-spacing:0.04em}.hud-mark{font-size:1.4em;opacity:0.85;text-shadow:0 0 18px rgba(120,200,255,0.6);animation:bob 6s ease-in-out infinite}.hud-name{font-family:"Cormorant Garamond",serif;font-size:clamp(1.1rem,2.4vw,1.55rem);font-weight:600;letter-spacing:0.12em}.hud-actions{display:flex;align-items:center;gap:14px}.hud-clock{font-variant-numeric:tabular-nums;font-size:0.82rem;letter-spacing:0.08em;opacity:0.8;font-weight:400}.time-scale-btn{width:38px;height:38px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--hud-fg-dim);display:grid;place-items:center;cursor:pointer;position:relative;transition:transform 0.3s ease,color 0.3s ease,border-color 0.3s ease,background 0.3s ease,box-shadow 0.4s ease}.time-scale-btn .ico-clock{display:block;transition:transform 0.4s cubic-bezier(0.4,1.6,0.5,1)}.time-scale-btn:hover{transform:translateY(-2px);background:var(--glass-strong);color:var(--hud-fg)}.time-scale-btn:hover .ico-clock{transform:scale(1.08)}.time-scale-btn:active{transform:translateY(0) scale(0.94)}.time-dots{position:absolute;inset:auto auto -3px 50%;transform:translateX(-50%);display:flex;gap:2px;pointer-events:none}.time-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.25);transition:background 0.3s ease,box-shadow 0.3s ease}.time-scale-btn[data-tier="1"] .time-dot:nth-child(-n+1){background:#ffd27a;box-shadow:0 0 4px rgba(255,200,110,0.9)}.time-scale-btn[data-tier="2"] .time-dot:nth-child(-n+2){background:#ffc24a;box-shadow:0 0 4px rgba(255,200,110,0.9)}.time-scale-btn[data-tier="3"] .time-dot{background:#ffb020;box-shadow:0 0 5px rgba(255,200,110,1)}.time-scale-btn[data-tier="1"]{color:#fff;border-color:rgba(255,220,150,0.55);background:rgba(190,150,70,0.3);box-shadow:0 0 10px rgba(255,200,110,0.35)}.time-scale-btn[data-tier="2"]{background:rgba(190,150,70,0.4);box-shadow:0 0 14px rgba(255,200,110,0.5),inset 0 0 6px rgba(255,230,160,0.25)}.time-scale-btn[data-tier="3"]{background:rgba(190,150,70,0.5);box-shadow:0 0 18px rgba(255,200,110,0.65),inset 0 0 8px rgba(255,230,160,0.35)}.time-scale-btn .ico-clock polyline{transform-origin:12px 12px}.time-scale-btn[data-tier="1"] .ico-clock polyline{animation:clock-spin 8s linear infinite}.time-scale-btn[data-tier="2"] .ico-clock polyline{animation:clock-spin 2s linear infinite}.time-scale-btn[data-tier="3"] .ico-clock polyline{animation:clock-spin 0.5s linear infinite}@keyframes clock-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.time-scale-btn:disabled{opacity:0.4;cursor:not-allowed;pointer-events:none}.weather-btn{width:38px;height:38px;border-radius:50%;border:1px solid var(--glass-border);background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--hud-fg-dim);display:grid;place-items:center;cursor:pointer;position:relative;transition:transform 0.3s ease,background 0.3s ease,box-shadow 0.4s ease,color 0.3s ease,border-color 0.3s ease}.weather-btn svg{display:block;transition:transform 0.4s cubic-bezier(0.4,1.6,0.5,1)}.weather-btn:hover{transform:translateY(-2px);background:var(--glass-strong);color:var(--hud-fg)}.weather-btn:hover svg{transform:scale(1.08)}.weather-btn:active{transform:translateY(0) scale(0.94)}.weather-btn.is-active{color:#fff;border-color:rgba(255,255,255,0.7)}#weather-rain.is-active{background:rgba(74,159,214,0.55);box-shadow:0 0 18px rgba(74,159,214,0.7),inset 0 0 10px rgba(150,220,255,0.4);color:#eaf6ff}#weather-lightning.is-active{background:rgba(190,150,70,0.5);box-shadow:0 0 18px rgba(255,220,130,0.7),inset 0 0 10px rgba(255,230,160,0.4);color:#fff7e0}.weather-badge{position:absolute;inset:auto auto -3px -3px;width:10px;height:10px;border-radius:50%;border:2px solid #fff;background:#4a9fd6;box-shadow:0 0 6px rgba(74,159,214,0.9);opacity:0;transition:opacity 0.3s ease;pointer-events:none}#weather-lightning .weather-badge{background:#c9a14a;box-shadow:0 0 6px rgba(255,220,130,0.9)}.weather-btn.is-auto .weather-badge{opacity:1}#weather-lightning.is-active .ico-bolt{animation:bolt-pulse 3.2s ease-in-out infinite}@keyframes bolt-pulse{0%,46%,54%,100%{filter:brightness(1)}49%,51%{filter:brightness(2)}}#weather-wind.is-active{background:rgba(100,200,200,0.45);box-shadow:0 0 18px rgba(120,220,220,0.6),inset 0 0 10px rgba(180,240,240,0.35);color:#e8fcfc}#weather-wind[data-level="2"].is-active{background:rgba(80,190,190,0.6);box-shadow:0 0 22px rgba(120,230,230,0.8),inset 0 0 12px rgba(180,245,245,0.45)}#weather-wind .weather-badge{background:#6ec8c8;box-shadow:0 0 6px rgba(120,220,220,0.9);opacity:0}#weather-wind.is-auto .weather-badge{opacity:1;animation:wind-auto-pulse 2.4s ease-in-out infinite}@keyframes wind-auto-pulse{0%,100%{opacity:0.5}50%{opacity:1}}#weather-wind[data-level="2"].is-active .ico-wind{animation:wind-sway 2.2s ease-in-out infinite}@keyframes wind-sway{0%,100%{transform:translateX(0)}50%{transform:translateX(2px)}}.tagline{position:fixed;z-index:10;top:14%;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;width:92%}.tagline-title{font-family:"Cormorant Garamond",serif;font-weight:400;font-size:clamp(2rem,6vw,3.6rem);letter-spacing:0.4em;text-indent:0.4em;background:linear-gradient(
+    180deg,rgba(255,255,255,0.96),rgba(180,220,255,0.7)
+  );-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 22px rgba(0,0,0,0.25))}.tagline-sub{margin-top:10px;font-size:clamp(0.72rem,1.6vw,0.9rem);letter-spacing:0.22em;opacity:0.78;font-weight:300}.islands{position:fixed;z-index:15;inset:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:clamp(20px,4vw,56px);perspective:1100px;perspective-origin:50% 62%;padding:23vh clamp(16px,5vw,40px) 10vh;pointer-events:none}.islands .island{pointer-events:auto}.island{--bob-dur:7s;--bob-delay:0s;--raft-tilt:-0.8deg;width:clamp(150px,22vw,210px);height:clamp(245px,32vh,292px);position:absolute;left:50%;top:50%;cursor:pointer;transform-style:preserve-3d;animation:none;transition:filter 0.28s ease-out,opacity 0.4s ease;filter:drop-shadow(0 22px 28px rgba(6,30,60,0.38));will-change:transform,left,top}.island.is-css-float{animation:water-drift var(--bob-dur) ease-in-out infinite;animation-delay:var(--bob-delay)}.island[data-type="blog"]{--raft-tilt:-1.2deg}.island[data-type="books"]{--raft-tilt:1.1deg}.island-card{position:absolute;inset:0;overflow:visible;border:0;background:transparent;box-shadow:none;display:flex;flex-direction:column;transform:rotateX(9deg) rotateZ(var(--raft-tilt));transform-origin:50% 100%;transform-style:preserve-3d;transition:transform 220ms cubic-bezier(0.23,1,0.32,1);will-change:transform}.island-card::before{content:"";position:absolute;left:0;right:0;bottom:0;height:14px;background:linear-gradient(
+    180deg,rgba(150,220,248,0) 0%,rgba(130,205,240,0.32) 70%,rgba(110,190,230,0.42) 100%
+  );pointer-events:none;z-index:1;border-radius:0 0 18px 18px;transition:opacity 0.3s ease}@media (hover:hover) and (pointer:fine){.island:hover{filter:drop-shadow(0 34px 38px rgba(6,30,60,0.5));z-index:16}.island:hover .island-card{transform:translateY(-7px) rotateX(5deg) rotateZ(var(--raft-tilt))
+      scale(1.025)}.island:hover .island-card::before{opacity:0.32}.island:hover::before{opacity:0.4;filter:blur(11px)}.island:hover .island-go{transform:rotate(-45deg) translateX(2px)}}.island:active .island-card{transform:translateY(-3px) rotateX(7deg) rotateZ(var(--raft-tilt))
+    scale(0.985)}.island-stripe{display:none}.island-visual{flex:1;position:relative;display:grid;place-items:center;padding:18px 16px 8px;overflow:visible;perspective:700px;transform-style:preserve-3d}.vis-blog{color:rgba(255,255,255,0.92)}.vis-blog .paper{width:86%;height:88%;position:relative;z-index:1;background:linear-gradient(
+    180deg,rgba(255,255,255,0.92),rgba(238,246,255,0.86)
+  );border:1px solid rgba(255,255,255,0.72);border-radius:7px 7px 5px 5px;padding:12px 11px;box-shadow:0 14px 18px -11px rgba(10,30,60,0.68),7px 7px 0 -5px rgba(225,239,247,0.66),10px 10px 12px -10px rgba(10,30,60,0.6);display:flex;flex-direction:column;gap:6px;transform:translateZ(17px) rotateX(4deg) rotate(-3.5deg);transform-origin:50% 100%;transform-style:preserve-3d}.vis-blog .paper::before{content:"";position:absolute;z-index:-1;inset:7px -8px -8px 7px;border:1px solid rgba(223,238,247,0.78);border-radius:5px;background:linear-gradient(180deg,#eef6fb,#d9e8f0);transform:translateZ(-8px) rotate(4deg);box-shadow:0 8px 14px -10px rgba(10,30,60,0.7)}.vis-blog .paper::after{content:"";position:absolute;top:-1px;right:-1px;width:28px;height:28px;background:linear-gradient(
+    135deg,rgba(206,226,237,0.95) 0 48%,rgba(255,255,255,0.2) 49%
+  );clip-path:polygon(0 0,100% 100%,100% 0);opacity:0.88}.vis-blog .paper .line{height:4px;border-radius:2px;background:#b9d4e8}.vis-blog .paper .line.title{height:8px;width:62%;background:var(--accent,#4a9fd6);margin-bottom:4px}.vis-blog .paper .line.s{width:92%}.vis-blog .paper .line.m{width:78%}.vis-blog .paper .line.t{width:50%}.vis-blog .paper .pic{height:26%;border-radius:6px;background:linear-gradient(135deg,rgba(255,255,255,0.22),transparent 42%),linear-gradient(135deg,#9fd3f0,#4a9fd6 58%,#2f729c);margin:4px 0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.42)}.vis-blog .paper .tag{align-self:flex-start;font-size:7px;padding:2px 6px;border-radius:10px;background:rgba(74,159,214,0.18);color:#2a6c9a;letter-spacing:0.1em}.vis-books{color:rgba(255,255,255,0.92)}.vis-books .stack{width:80%;height:86%;position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;transform:translateZ(18px) rotateX(12deg) rotateZ(-2deg);transform-style:preserve-3d}.vis-books .bk{height:20%;border-radius:3px 6px 6px 3px;position:relative;box-shadow:0 6px 14px -8px rgba(10,30,60,0.6),inset 6px 0 0 rgba(255,255,255,0.18);display:flex;align-items:center;padding-left:16px;font-size:8px;letter-spacing:0.12em;color:rgba(255,255,255,0.9);transform-origin:left center;transform-style:preserve-3d;overflow:visible}.vis-books .bk::before{content:"";position:absolute;left:4px;top:12%;bottom:12%;width:2px;border-radius:2px;background:rgba(255,255,255,0.35);transform:translateZ(2px)}.vis-books .bk::after{content:"";position:absolute;right:3%;top:13%;bottom:13%;width:15%;border-radius:0 3px 3px 0;background:repeating-linear-gradient(
+    180deg,rgba(255,246,218,0.82) 0 1px,rgba(194,157,112,0.58) 1px 2px
+  );transform:skewY(-2deg) translateZ(1px);opacity:0.82}.vis-books .bk:nth-child(1){width:92%;background:linear-gradient(90deg,#d98b6a,#c9754f);transform:rotate(-1.5deg)}.vis-books .bk:nth-child(2){width:100%;background:linear-gradient(90deg,#5a8fb8,#3f6f96)}.vis-books .bk:nth-child(3){width:86%;background:linear-gradient(90deg,#8a7bb8,#6a5b9a);transform:rotate(1.2deg)}.vis-books .bk:nth-child(4){width:96%;background:linear-gradient(90deg,#6ab08a,#4a9070)}.vis-books .bookmark{position:absolute;top:-6%;left:56%;width:10px;height:30%;background:rgba(255,255,255,0.85);clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);opacity:0.9;transform:translateZ(16px) rotate(2deg)}.island-foot{width:max-content;max-width:100%;margin:0 auto;padding:4px 2px 3px;background:transparent;border:0;backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;align-items:center;justify-content:space-between;gap:8px}.island-name{font-family:"Cormorant Garamond",serif;font-size:1.18rem;font-weight:600;letter-spacing:0.06em;color:#fff;text-shadow:0 2px 8px rgba(6,30,60,0.4)}.island-desc{font-size:0.66rem;letter-spacing:0.16em;opacity:0.7;margin-top:2px}.island-go{flex-shrink:0;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent,#4a9fd6);color:#fff;box-shadow:0 4px 12px -4px var(--accent,#4a9fd6);transition:transform 0.35s cubic-bezier(0.4,1.6,0.5,1)}.island-go svg{width:13px;height:13px}.island::before{content:"";position:absolute;left:-6%;right:-6%;bottom:-6%;height:25%;z-index:-2;pointer-events:none;border-radius:50%;background:radial-gradient(
+      ellipse at center,rgba(12,57,77,0.48) 0 22%,transparent 52%
+    ),radial-gradient(
+      ellipse at center,transparent 35%,rgba(132,220,235,0.24) 39% 41%,transparent 47%
+    );filter:blur(8px);opacity:0.78;transform:translateZ(-18px) scaleY(0.34);transition:opacity 0.3s ease,filter 0.3s ease}.island::after{content:"";position:absolute;left:10%;right:10%;bottom:-24%;height:31%;background:linear-gradient(180deg,rgba(176,222,238,0.27),rgba(176,222,238,0)),radial-gradient(
+      ellipse at 50% 0%,rgba(146,218,234,0.28),transparent 68%
+    );border-radius:46% 54% 50% 50%;filter:blur(8px) saturate(0.72);transform:translateZ(-11px) scaleY(-0.48) skewX(var(--raft-tilt));opacity:0.46;z-index:-1;mix-blend-mode:screen}@keyframes water-drift{0%,100%{transform:translate3d(0,2px,0) rotateZ(calc(var(--raft-tilt) - 0.35deg))
+      rotateX(0.8deg)}28%{transform:translate3d(-1px,-5px,0)
+      rotateZ(calc(var(--raft-tilt) + 0.2deg)) rotateX(-0.8deg)}58%{transform:translate3d(1px,-10px,0)
+      rotateZ(calc(var(--raft-tilt) + 0.6deg)) rotateX(1.1deg)}82%{transform:translate3d(0,-4px,0) rotateZ(calc(var(--raft-tilt) - 0.1deg))
+      rotateX(-0.5deg)}}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}.footer-hint{position:fixed;z-index:10;bottom:clamp(10px,3vh,26px);left:50%;transform:translateX(-50%);font-size:0.72rem;letter-spacing:0.28em;opacity:0.5;font-weight:300;pointer-events:none;white-space:nowrap}.view-toggle{font-family:inherit;font-size:0.74rem;letter-spacing:0.08em;padding:3px 10px;border-radius:999px;border:1px solid var(--glass-border);background:var(--glass);color:var(--hud-fg-dim);cursor:pointer;min-width:3em;text-align:center;white-space:nowrap;transition:color 0.3s ease,border-color 0.3s ease,background 0.3s ease,box-shadow 0.4s ease}.view-toggle:hover{color:var(--hud-fg);border-color:rgba(255,255,255,0.55)}.view-toggle:active{transform:scale(0.94)}.view-toggle.is-active{color:#fff;border-color:rgba(150,200,255,0.7);background:rgba(80,140,200,0.45);box-shadow:0 0 14px rgba(150,200,255,0.45)}@media (max-width:640px){.view-toggle{padding:3px 8px;font-size:0.68rem;min-width:2.6em}}body[data-theme="night"]{--hud-fg:rgba(228,240,255,0.95)}body[data-theme="day"]{--hud-fg:rgba(11,31,51,0.88);--hud-fg-dim:rgba(11,31,51,0.6);--glass:rgba(255,255,255,0.35);--glass-border:rgba(255,255,255,0.55)}body[data-theme="day"] .tagline-title{background:linear-gradient(
+    180deg,rgba(11,40,71,0.92),rgba(30,90,138,0.85)
+  );-webkit-background-clip:text;background-clip:text}body[data-theme="day"] .tagline-sub{opacity:0.8;color:#0b2847}body[data-theme="day"] .footer-hint{color:#0b2847}body[data-theme="day"] .island-card{background:transparent;border-color:transparent;box-shadow:none}body[data-theme="day"] .island-name{color:#0b2847;text-shadow:0 1px 3px rgba(255,255,255,0.5)}body[data-theme="day"] .island-desc{color:rgba(11,40,71,0.62)}body[data-theme="day"] .island::after{background:linear-gradient(
+    180deg,rgba(120,180,220,0.4),rgba(120,180,220,0)
+  )}body[data-theme="dusk"]{--hud-fg:rgba(255,240,220,0.95);--hud-fg-dim:rgba(255,220,190,0.66);--glass:rgba(255,200,150,0.18);--glass-strong:rgba(255,200,150,0.28);--glass-border:rgba(255,210,170,0.42)}body[data-theme="dusk"] .tagline-title{background:linear-gradient(
+    180deg,rgba(255,246,232,0.96),rgba(255,178,128,0.82)
+  );-webkit-background-clip:text;background-clip:text}body[data-theme="dusk"] .tagline-sub{color:#ffe6cc;opacity:0.82}body[data-theme="dusk"] .footer-hint{color:#ffd9b3}body[data-theme="dusk"] .island-card{background:transparent;border-color:transparent;box-shadow:none}body[data-theme="dusk"] .island-name{color:#fff5e0;text-shadow:0 2px 10px rgba(60,20,0,0.5)}body[data-theme="dusk"] .island-desc{color:rgba(255,220,180,0.78)}body[data-theme="dusk"] .island::after{background:linear-gradient(
+    180deg,rgba(255,190,140,0.36),rgba(255,190,140,0)
+  )}body[data-theme="night"] .island-name{color:#f2f8ff;text-shadow:0 2px 10px rgba(0,0,0,0.45)}body[data-theme="night"] .island-desc{color:rgba(220,235,255,0.7)}body,.island-card,.island-name,.island-desc,.tagline-title,.tagline-sub,.footer-hint,.hud-name,.hud-clock{transition-property:background,color,border-color,box-shadow,-webkit-text-fill-color;transition-duration:0.8s}@media (max-width:640px){.hud{padding:10px 8px}.hud-actions{gap:5px}.tagline{top:11%}.tagline-title{letter-spacing:0.28em}.islands{gap:18px;padding-top:26vh}.island{width:clamp(128px,42vw,168px)}.hud-clock{display:none}}@media (max-height:560px){.tagline{top:8%}.islands{padding-top:18vh}.footer-hint{display:none}}@media (prefers-reduced-motion:reduce){.island,.hud-mark{animation:none !important}}</style>
   </head>
   <body data-theme="auto" class="loading">
-    <!-- 海洋画布（背景层） -->
     <canvas id="ocean-canvas" aria-hidden="true"></canvas>
-
-    <!-- 顶部信息与主题切换 -->
     <header class="hud">
-      <div class="hud-brand">
-        <span class="hud-mark">≋</span>
-        <span class="hud-name" id="site-name">Galok</span>
-      </div>
+      <div class="hud-brand"><span class="hud-mark">≋</span><span class="hud-name" id="site-name">Galok</span></div>
       <div class="hud-actions">
         <span class="hud-clock" id="clock" title="天空观测点当地时间"></span>
-        <button
-          class="time-scale-btn"
-          id="time-scale"
-          type="button"
-          aria-label="调整时间流速"
-          title="时间流速：1×（真实时间）"
-          data-tier="0"
-        >
-          <svg
-            class="ico-clock"
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
-            <polyline points="12 7 12 12 15 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          <span class="time-dots" aria-hidden="true">
-            <span class="time-dot"></span>
-            <span class="time-dot"></span>
-            <span class="time-dot"></span>
-          </span>
+        <button class="time-scale-btn" id="time-scale" type="button" aria-label="调整时间流速" title="时间流速：1×（真实时间）" data-tier="0">
+          <svg class="ico-clock" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" /><polyline points="12 7 12 12 15 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <span class="time-dots" aria-hidden="true"><span class="time-dot"></span><span class="time-dot"></span><span class="time-dot"></span></span>
         </button>
-        <button
-          class="weather-btn"
-          id="weather-rain"
-          type="button"
-          aria-label="切换下雨"
-          title="下雨开关（随机）"
-        >
-          <svg
-            class="ico-rain"
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            aria-hidden="true"
-          >
-            <path
-              d="M6.5 12.5a3.5 3.5 0 0 1 .5-2 4 4 0 0 1 7.6 1.2 3 3 0 0 1 .4 5.8H7a3 3 0 0 1-.5-5z"
-              fill="currentColor"
-            />
-            <g stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <line x1="8" y1="18.5" x2="7" y2="21.5" />
-              <line x1="12" y1="18.5" x2="11" y2="21.5" />
-              <line x1="16" y1="18.5" x2="15" y2="21.5" />
-            </g>
-          </svg>
+        <button class="weather-btn" id="weather-rain" type="button" aria-label="切换下雨" title="下雨开关（随机）">
+          <svg class="ico-rain" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6.5 12.5a3.5 3.5 0 0 1 .5-2 4 4 0 0 1 7.6 1.2 3 3 0 0 1 .4 5.8H7a3 3 0 0 1-.5-5z" fill="currentColor" /><g stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="18.5" x2="7" y2="21.5" /><line x1="12" y1="18.5" x2="11" y2="21.5" /><line x1="16" y1="18.5" x2="15" y2="21.5" /></g></svg>
           <span class="weather-badge" aria-hidden="true"></span>
         </button>
-        <button
-          class="weather-btn"
-          id="weather-lightning"
-          type="button"
-          aria-label="切换闪电"
-          title="闪电开关（随机）"
-        >
-          <svg
-            class="ico-bolt"
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            aria-hidden="true"
-          >
-            <path d="M13 2 L5 13 h5 l-2 9 9-12 h-5 z" fill="currentColor" />
-          </svg>
+        <button class="weather-btn" id="weather-lightning" type="button" aria-label="切换闪电" title="闪电开关（随机）">
+          <svg class="ico-bolt" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M13 2 L5 13 h5 l-2 9 9-12 h-5 z" fill="currentColor" /></svg>
           <span class="weather-badge" aria-hidden="true"></span>
         </button>
-        <button
-          class="weather-btn"
-          id="weather-wind"
-          type="button"
-          aria-label="切换风力"
-          title="风力开关：无风"
-        >
-          <svg
-            class="ico-wind"
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M3 8h11a3 3 0 1 0-3-3" />
-            <path d="M3 12h15a3 3 0 1 1-3 3" />
-            <path d="M3 16h7a2.5 2.5 0 1 1-2.5 2.5" />
-          </svg>
+        <button class="weather-btn" id="weather-wind" type="button" aria-label="切换风力" title="风力开关：无风">
+          <svg class="ico-wind" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h11a3 3 0 1 0-3-3" /><path d="M3 12h15a3 3 0 1 1-3 3" /><path d="M3 16h7a2.5 2.5 0 1 1-2.5 2.5" /></svg>
           <span class="weather-badge" aria-hidden="true"></span>
         </button>
-        <button
-          class="view-toggle"
-          id="view-toggle"
-          type="button"
-          aria-label="切换视角"
-          title="自动视角：自由拖动"
-        >
-          自动
-        </button>
+        <button class="view-toggle" id="view-toggle" type="button" aria-label="切换视角" title="自动视角：自由拖动">自动</button>
       </div>
     </header>
-
-    <!-- 中央标语 -->
     <section class="tagline" aria-hidden="true">
       <h1 class="tagline-title">漂 浮 的 入 口</h1>
-      <p class="tagline-sub">
-        Tap an island to set sail · 点亮一座岛屿，扬帆远航
-      </p>
+      <p class="tagline-sub">Tap an island to set sail · 点亮一座岛屿，扬帆远航</p>
     </section>
-
-    <!-- 海面漂浮物容器（由 app.js 动态填充） -->
     <main class="islands" id="islands" aria-label="站点入口"></main>
-
-    <!-- 底部水波提示 -->
-    <footer class="footer-hint" aria-hidden="true">
-      <span>· 左右旋转，查看更多 ·</span>
-    </footer>
-    <script src="./water.js?v=20260803-14" defer></script>
-    <script src="./app.js?v=20260803-03" defer></script>
+    <footer class="footer-hint" aria-hidden="true"><span>· 左右旋转，查看更多 ·</span></footer>
+    <script src="./water.min.js" defer fetchpriority="high"></script>
+    <script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));</script>
+    <script>!function(){"use strict";const t=[{type:"blog",name:"Galok's Blog",desc:"BLOG · 思绪与札记",url:"https://blog.galok.cn",target:"_blank",accent:"#4a9fd6"},{type:"books",name:"Galok's 知序书房",desc:"BOOKS · 书海漫游",url:"https://books.galok.cn",target:"_blank",accent:"#8a7bb8"},{type:"share",name:"Galok's 热爱分享",desc:"Share · 海量资源",url:"https://pgxcg.qzz.io",target:"_blank",accent:"#8a2bb1"}],e=document.getElementById("islands"),n=document.getElementById("site-name"),a=document.getElementById("clock");function s(){let t="day";if(window.GalokOcean&&window.GalokOcean.period)t=window.GalokOcean.period;else{const e=(new Date).getHours();t=e>=6&&e<18?"day":"night"}document.body.setAttribute("data-theme",t),document.body.setAttribute("data-period",t)}n&&(n.textContent="Galok");const i=document.getElementById("weather-rain"),o=document.getElementById("weather-lightning"),l=["off","on","auto"],d={off:"关闭",on:"立即下雨",auto:"自动下雨"},c={off:"关闭",on:"立即闪电",auto:"自动闪电"};let r=2,u=2;function p(){const t=l[r],e=l[u];window.GalokOcean&&window.GalokOcean.setWeather&&window.GalokOcean.setWeather({rain:t,lightning:e}),i&&(i.classList.toggle("is-active","off"!==t),i.classList.toggle("is-auto","auto"===t),i.setAttribute("title",`下雨：${d[t]}`),i.setAttribute("aria-label",`下雨：${d[t]}，点击切换`)),o&&(o.classList.toggle("is-active","off"!==e),o.classList.toggle("is-auto","auto"===e),o.setAttribute("title",`闪电：${c[e]}`),o.setAttribute("aria-label",`闪电：${c[e]}，点击切换`))}i&&i.addEventListener("click",()=>{r=(r+1)%3,p()}),o&&o.addEventListener("click",()=>{u=(u+1)%3,p()});const m=document.getElementById("time-scale"),f=[1,100,1e3,1e4],v=["真实时间","100× 加速","1000× 加速","10000× 加速"];let g=0;function y(){const t=f[g];window.GalokOcean&&window.GalokOcean.setTimeScale&&window.GalokOcean.setTimeScale(t),m&&(m.setAttribute("data-tier",String(g)),m.setAttribute("title",`时间流速：${v[g]}`),m.setAttribute("aria-label",`时间流速 ${v[g]}，点击切换`))}m&&m.addEventListener("click",()=>{g=(g+1)%f.length,y()});const w=document.getElementById("weather-wind"),k=["off","low","high","auto"],h={off:"无风",low:"微风",high:"强风",auto:"随机"};let b=3;function x(){const t=k[b];window.GalokOcean&&window.GalokOcean.setWind&&window.GalokOcean.setWind(t),w&&(w.classList.toggle("is-active","off"!==t),w.classList.toggle("is-auto","auto"===t),w.setAttribute("data-level",String(b)),w.setAttribute("title",`风力：${h[t]}`),w.setAttribute("aria-label",`风力${h[t]}，点击切换`))}w&&w.addEventListener("click",()=>{b=(b+1)%k.length,x()});const O=document.getElementById("view-toggle"),G=["auto","sunrise","sunset","moonrise","moonset"],A={auto:"自动",sunrise:"日出",sunset:"日落",moonrise:"月升",moonset:"月落"},L={auto:"自动视角：自由拖动",sunrise:"跳到日出时刻并对准东方",sunset:"跳到日落时刻并对准西方",moonrise:"跳到月升时刻并对准月亮",moonset:"跳到月落时刻并对准月亮"};let $=0,E="auto";function I(t){E=t,$=G.indexOf(t),window.GalokOcean&&window.GalokOcean.setView&&window.GalokOcean.setView(t),O&&(O.textContent=A[E],O.classList.toggle("is-active","auto"!==E),O.setAttribute("title",L[E]),O.setAttribute("aria-label",`切换视角，当前 ${A[E]}`))}O&&O.addEventListener("click",()=>{$=($+1)%G.length,I(G[$])});const S=document.getElementById("ocean-canvas");S&&S.addEventListener("pointerdown",()=>{"auto"!==E&&I("auto")});const M=new WeakMap,B=new WeakMap,F=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;function C(t){const n=e?e.querySelectorAll(".island"):[],a=window.GalokOcean,s=a&&"number"==typeof a.time?a.time:.001*t,i=Math.min(.08,Math.max(.001,.001*(t-(C.last||t))));C.last=t;const o=!(!a||"function"!=typeof a.rippleAt),l=!(!a||"function"!=typeof a.projectWorld),d=[];n.forEach(t=>{if(!a||"function"!=typeof a.sampleSurface)return t.classList.add("is-css-float"),t.style.left=`calc(50% + ${70*(Number(t.dataset.floatX)||0)}px)`,void(t.style.top="55%");if(t.classList.remove("is-css-float"),F)return void(t.style.transform="translate(-50%, -50%)");const e=Number(t.dataset.floatX)||0,n=Number(t.dataset.floatZ)||2.5,c=a.sampleSurface(e,n,s);let r=M.get(t);r||(r={px:0,py:0,scale:1,rx:0,ry:0,inited:!1},M.set(t,r));const u=1-Math.exp(5.5*-i),p=11*c.slopeZ,m=11*-c.slopeX;if(r.rx+=(p-r.rx)*u,r.ry+=(m-r.ry)*u,l){const s=a.projectWorld(e+c.driftX,c.height,n);if(!s.visible)return t.style.opacity="0",t.style.pointerEvents="none",void(r.inited=!1);t.style.opacity="",t.style.pointerEvents="",r.inited?(r.px+=(s.px-r.px)*u,r.py+=(s.py-r.py)*u,r.scale+=(s.scale-r.scale)*u):(r.px=s.px,r.py=s.py,r.scale=s.scale,r.inited=!0),t.style.left=r.px.toFixed(1)+"px",t.style.top=r.py.toFixed(1)+"px",t.style.transform=`translate(-50%, -50%) scale(${r.scale.toFixed(3)}) rotateX(${r.rx.toFixed(2)}deg) rotateY(${r.ry.toFixed(2)}deg)`,d.push({el:t,depth:s.depth})}else t.style.left=`calc(50% + ${70*e}px)`,t.style.top="55%",t.style.transform=`translate(-50%, -50%) rotateX(${r.rx.toFixed(2)}deg) rotateY(${r.ry.toFixed(2)}deg)`;if(o&&!t.matches(":hover")){let i=B.get(t);i||(i={nextAt:s+.6+1.4*Math.random()},B.set(t,i)),s>=i.nextAt&&(a.rippleAt(e,n,.08+.06*Math.random()),i.nextAt=s+2.2+2*Math.random())}}),d.sort((t,e)=>e.depth-t.depth),d.forEach((t,e)=>{t.el.style.zIndex=t.el.matches(":hover")?"100":String(10+e)}),requestAnimationFrame(C)}function W(){if(!a)return;if(window.GalokOcean&&window.GalokOcean.clockText)return a.textContent=window.GalokOcean.clockText,void(a.title=`${window.GalokOcean.locationLabel||"天空观测点"}当地时间`);const t=new Date,e=String(t.getHours()).padStart(2,"0"),n=String(t.getMinutes()).padStart(2,"0");a.textContent=`${e}:${n} local`}function V(){e&&(e.innerHTML="",t.forEach((n,a)=>{const s=document.createElement("a");s.className="island",s.setAttribute("data-type",n.type);const i=.5*(t.length-1);s.dataset.floatX=(2.25*(a-i)).toFixed(3),s.dataset.floatZ=(2.35+.42*a).toFixed(3),s.href=n.url||"#",s.target=n.target||"_self","_blank"===s.target&&(s.rel="noopener noreferrer"),s.style.setProperty("--accent",n.accent||"#4a9fd6"),s.style.setProperty("--bob-delay",(1.35*a).toFixed(2)+"s"),s.setAttribute("aria-label",`${n.name} — ${n.desc}`),s.innerHTML=`\n        <div class="island-card">\n          <div class="island-stripe"></div>\n          <div class="island-visual vis-${n.type||"link"}">${function(t){switch(t){case"blog":return'\n          <div class="paper">\n            <div class="line title"></div>\n            <div class="line s"></div>\n            <div class="line m"></div>\n            <div class="pic"></div>\n            <div class="line s"></div>\n            <div class="line t"></div>\n            <span class="tag">ESSAY</span>\n          </div>';case"books":return'\n          <div class="stack">\n            <span class="bookmark"></span>\n            <div class="bk">VOL · I</div>\n            <div class="bk">VOL · II</div>\n            <div class="bk">VOL · III</div>\n            <div class="bk">VOL · IV</div>\n          </div>';default:return"\n          <div style=\"font-family:'Cormorant Garamond',serif;font-size:3.4rem;letter-spacing:.1em;opacity:.85\">↗</div>"}}(n.type)}</div>\n          <div class="island-foot">\n            <div>\n              <div class="island-name">${n.name}</div>\n              <div class="island-desc">${n.desc||""}</div>\n            </div>\n            <div class="island-go" aria-hidden="true">\n              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>\n            </div>\n          </div>\n        </div>`,e.appendChild(s)})),s(),p(),y(),x(),W(),requestAnimationFrame(C)}setInterval(s,2e4),setInterval(W,1e3),"loading"===document.readyState?document.addEventListener("DOMContentLoaded",V):V()}();</script>
   </body>
 </html>

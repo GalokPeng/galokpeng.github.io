@@ -16,12 +16,26 @@
 
 ```
 galok-page/
-├── index.html      # 页面结构
-├── style.css       # 样式（卡片、布局、昼夜文字适配）
-├── water.js        # 海水引擎（波浪/涟漪/昼夜色彩/日月星辰）
-├── app.js          # 站点配置 + 卡片渲染 + 主题切换
+├── index.html      # 页面结构（已内联 CSS 与 app.js，减少请求）
+├── style.css       # 样式源文件（卡片、布局、昼夜文字适配）
+├── style.min.css   # 压缩后的样式（由 style.css 生成）
+├── water.js        # 海水引擎源文件（波浪/涟漪/昼夜色彩/日月星辰）
+├── water.min.js    # 压缩后的海水引擎（页面实际加载此文件）
+├── app.js          # 站点配置 + 卡片渲染 + 主题切换（源文件）
+├── app.min.js      # 压缩后的应用逻辑（已内联到 index.html）
+├── sw.js           # Service Worker 缓存（加速回访）
 └── README.md
 ```
+
+> **性能说明**：线上实测瓶颈是 `water.js`（111KB）的下载与 HTTP/1.1 队头阻塞。优化后把 CSS 与 app.js 内联进 HTML，只保留 `water.min.js`（64KB）一个外部请求；配合 `preload` 和 Service Worker 缓存，首次加载和回访都明显加快。
+>
+> **维护提醒**：修改源文件后需重新生成压缩文件并同步到 `index.html`：
+> ```
+> npx terser water.js -c -m --comments false -o water.min.js
+> npx terser app.js -c -m --comments false -o app.min.js
+> # 然后把 style.min.css 和 app.min.js 的内容重新内联到 index.html
+> # 修改后把 sw.js 里的 CACHE 版本号 +1，让回访用户拿到新版本
+> ```
 
 ## 快速自定义（只改 app.js 顶部）
 
