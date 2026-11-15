@@ -23,19 +23,19 @@ galok-page/
 ├── water.min.js    # 压缩后的海水引擎（页面实际加载此文件）
 ├── app.js          # 站点配置 + 卡片渲染 + 主题切换（源文件）
 ├── app.min.js      # 压缩后的应用逻辑（已内联到 index.html）
-├── sw.js           # Service Worker 缓存（加速回访）
+├── sw.js           # Service Worker（网络优先，仅离线兜底）
 └── README.md
 ```
 
-> **性能说明**：线上实测瓶颈是 `water.js`（111KB）的下载与 HTTP/1.1 队头阻塞。优化后把 CSS 与 app.js 内联进 HTML，只保留 `water.min.js`（64KB）一个外部请求；配合 `preload` 和 Service Worker 缓存，首次加载和回访都明显加快。
+> **性能说明**：线上实测瓶颈是 `water.js`（111KB）的下载与 HTTP/1.1 队头阻塞。优化后把 CSS 与 app.js 内联进 HTML，只保留 `water.min.js`（64KB）一个外部请求；配合 `preload` 与 GitHub Pages 自带的 `max-age=600` HTTP 缓存，首次加载和回访都明显加快。
 >
-> **维护提醒**：修改源文件后需重新生成压缩文件并同步到 `index.html`：
+> **维护提醒**：`index.html` 内联了 CSS 与 app.js，页面只加载 `water.min.js`。只改源文件（`style.css` / `app.js` / `water.js`）**不会改变线上页面**，必须重新生成压缩产物并同步内联：
 > ```
 > npx terser water.js -c -m --comments false -o water.min.js
 > npx terser app.js -c -m --comments false -o app.min.js
 > # 然后把 style.min.css 和 app.min.js 的内容重新内联到 index.html
-> # 修改后把 sw.js 里的 CACHE 版本号 +1，让回访用户拿到新版本
 > ```
+> `sw.js` 已改为网络优先，日常改内容**不需要**再手动 +1 缓存版本号。
 
 ## 快速自定义（只改 app.js 顶部）
 
@@ -75,6 +75,13 @@ const SITE_NAME = "Galok";        // 左上角品牌名
 4. 等约 1 分钟，访问 `https://<你的用户名>.github.io/galok-page/` 即可。
 
 > 想用自定义域名（如 `galok.dev`）？在 Pages 设置里填 Custom domain，并把域名 DNS 指向 GitHub Pages。中转链接可改成该域名下的子域名。
+
+### push 后页面还是旧版？
+
+1. **先确认服务端**：`curl -I https://galok.cn/` 看 `Last-Modified`，或直接开无痕窗口访问 `https://galok.cn/?v=<任意新值>`（带新查询串可绕过 CDN 与浏览器缓存）。内容正确 → 问题在客户端缓存。
+2. **GitHub Pages 的 10 分钟缓存**：所有文件（含 `index.html`、`sw.js`）都带 `Cache-Control: max-age=600`，push 后 CDN 边缘节点与浏览器最长可能滞后 10 分钟，这是平台限制。等 10 分钟或换查询串验证。
+3. **Service Worker**：旧版 `sw.js` 是 cache-first，会把旧 HTML 永久钉在 Cache Storage 里；新版已改为 network-first，缓存仅作离线兜底。已中招的浏览器在下次访问时会检测到 `sw.js` 变化，自动清理旧缓存并重载一次。若仍异常：DevTools → Application → Service Workers 勾 `Bypass for network` / `Unregister`，再 `Clear storage` 后硬刷新。
+4. **改错了文件**：见上方「维护提醒」，页面只认 `index.html` 内联内容与 `water.min.js`，改源文件不重新生成产物不会有任何变化。
 
 ## 本地预览
 
