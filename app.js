@@ -396,7 +396,7 @@
   /* ---------- 启动 ---------- */
   function startOcean() {
     const script = document.createElement("script");
-    script.src = "./water.min.js?v=20261118";
+    script.src = "./water.min.js?v=20261118-2";
     document.head.appendChild(script);
   }
 

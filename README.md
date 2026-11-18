@@ -27,7 +27,7 @@ galok-page/
 └── README.md
 ```
 
-> **首屏加载**：内联 CSS 和应用脚本先显示可点击的静态卡片，随后加载 `water.min.js`。支持 `KHR_parallel_shader_compile` 的浏览器会异步等待 WebGL 着色器链接，海面在首帧绘制后出现。
+> **首屏加载**：入口卡片先显示，海面先用低分辨率、少量波形开始绘制。支持 `KHR_parallel_shader_compile` 的浏览器会在播放期间异步准备完整的天空、反射和天气效果，完成后切换；其余 WebGL 浏览器继续绘制轻量海面。
 >
 > **维护提醒**：`index.html` 内联了 CSS 与 app.js，页面只加载 `water.min.js`。只改源文件（`style.css` / `app.js` / `water.js`）**不会改变线上页面**，必须重新生成压缩产物并同步内联：
 > ```
@@ -35,7 +35,7 @@ galok-page/
 > npx terser app.js -c -m --comments false -o app.min.js
 > # 然后把 style.min.css 和 app.min.js 的内容重新内联到 index.html
 > ```
-> `sw.js` 网络优先，缓存仅用于离线。需要为海水引擎更新 URL 时，同时更新 `app.js` 和 `sw.js` 的资源地址。
+> `sw.js` 网络优先，缓存仅用于离线。需要为海水引擎更新 URL 时，同时更新 `index.html`、`app.js` 和 `sw.js` 的资源地址。
 
 ## 快速自定义（只改 app.js 顶部）
 

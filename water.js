@@ -116,6 +116,63 @@
 
   const VS = `attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
+  // 用同一相机和波谱先绘制海面。复杂的天空、反射与天气着色器随后替换它。
+  const PREVIEW_WAVES = 6;
+  const PREVIEW_FS = `
+    precision highp float;
+    uniform vec2 uResolution;
+    uniform float uTime, uCameraYaw, uCameraPitch, uHorizonUv, uWindLevel;
+    uniform float uSunVisibility, uMoonVisibility, uMoonPhase, uNight, uFlash, uCloudDarken;
+    uniform vec3 uSunDir, uMoonDir, uCelestialColor;
+    uniform vec3 uSkyZenith, uSkyHorizon, uWaterDeep, uWaterShallow;
+    uniform vec4 uWaves[${PREVIEW_WAVES}];
+
+    void main() {
+      vec2 uv = (2.0 * gl_FragCoord.xy - uResolution) / uResolution.y;
+      float t = mod(uTime, 3600.0);
+      float pitch = uCameraPitch - uHorizonUv * 0.8;
+      float cp = cos(pitch), sp = sin(pitch);
+      float cy = cos(uCameraYaw), sy = sin(uCameraYaw);
+      vec3 ray = vec3(uv.x * 1.15, cp * uv.y - sp * 1.05, sp * uv.y + cp * 1.05);
+      vec3 rd = normalize(vec3(cy * ray.x + sy * ray.z, ray.y, -sy * ray.x + cy * ray.z));
+      vec3 zenith = uSkyZenith * (1.0 - 0.38 * uCloudDarken);
+      vec3 col = mix(uSkyHorizon, zenith, pow(max(rd.y, 0.0), 0.6));
+      if (rd.y >= 0.0) {
+        col += uCelestialColor * uSunVisibility * pow(max(dot(rd, uSunDir), 0.0), 40.0) * 0.45;
+        col += vec3(0.6, 0.72, 1.0) * uMoonVisibility * uMoonPhase
+             * pow(max(dot(rd, uMoonDir), 0.0), 380.0) * 0.45;
+      } else {
+        float distance = -0.70 / rd.y;
+        vec2 point = rd.xz * distance + vec2(t * 0.015, 0.0);
+        float height = 0.0;
+        vec2 slope = vec2(0.0);
+        for (int i = 0; i < ${PREVIEW_WAVES}; i++) {
+          vec4 wave = uWaves[i];
+          float phase = dot(wave.xy, point) - sqrt(9.81 * length(wave.xy)) * t + wave.w;
+          height += wave.z * cos(phase);
+          slope -= wave.xy * (wave.z * sin(phase));
+        }
+        vec3 normal = normalize(vec3(-slope.x, 1.0, -slope.y));
+        vec3 reflected = reflect(rd, normal);
+        vec3 sky = mix(uSkyHorizon, zenith, pow(abs(reflected.y), 0.6));
+        float fresnel = 0.02 + 0.98 * pow(1.0 - clamp(dot(normal, -rd), 0.0, 1.0), 5.0);
+        vec3 water = mix(uWaterDeep, uWaterShallow, smoothstep(-0.5, 0.8, height));
+        water *= mix(0.72, 0.25, uNight);
+        col = mix(water, sky * vec3(0.8, 0.85, 1.0), fresnel);
+        float sunSpec = max(dot(normal, normalize(uSunDir - rd)), 0.0);
+        float moonSpec = max(dot(normal, normalize(uMoonDir - rd)), 0.0);
+        col += uCelestialColor * uSunVisibility * pow(sunSpec, 75.0) * 0.19;
+        col += vec3(0.32, 0.48, 0.75) * uMoonVisibility * uMoonPhase * pow(moonSpec, 110.0) * 0.15;
+        col += vec3(0.6, 0.75, 0.85) * smoothstep(0.28, 0.7, length(slope))
+             * smoothstep(0.04, 0.24, height) * (0.06 + 0.08 * uWindLevel);
+        col = mix(uSkyHorizon, col, exp(-0.012 * distance));
+      }
+      col += vec3(0.82, 0.86, 1.0) * uFlash * 0.32;
+      col *= 1.2 * (1.0 - 0.16 * dot(uv * 0.5, uv * 0.5));
+      col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);
+      gl_FragColor = vec4(pow(max(col, vec3(0.0)), vec3(1.0 / 2.2)), 1.0);
+    }`;
+
   const FS = `
     precision highp float;
     uniform vec2  uResolution;
@@ -929,30 +986,42 @@
     return s;
   }
   const parallelCompile = gl.getExtension("KHR_parallel_shader_compile");
-  const vertexShader = compile(VS, gl.VERTEX_SHADER);
-  const fragmentShader = compile(FS, gl.FRAGMENT_SHADER);
-  const prog = gl.createProgram();
-  gl.attachShader(prog, vertexShader);
-  gl.attachShader(prog, fragmentShader);
-  gl.linkProgram(prog);
-  if (parallelCompile) {
-    // 直接查询 LINK_STATUS 会同步等待驱动完成复杂着色器的编译。
-    while (!gl.getProgramParameter(prog, parallelCompile.COMPLETION_STATUS_KHR)) {
-      if (gl.isContextLost()) return;
-      await new Promise((resolve) => requestAnimationFrame(resolve));
+  async function linkOceanProgram(fragmentSource) {
+    const vertexShader = compile(VS, gl.VERTEX_SHADER);
+    const fragmentShader = compile(fragmentSource, gl.FRAGMENT_SHADER);
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.bindAttribLocation(program, 0, "aPos");
+    gl.linkProgram(program);
+    if (parallelCompile) {
+      // 直接查询 LINK_STATUS 会同步等待驱动完成复杂着色器的编译。
+      while (!gl.getProgramParameter(program, parallelCompile.COMPLETION_STATUS_KHR)) {
+        if (gl.isContextLost()) return null;
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
     }
+    const linked = gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (!linked) {
+      console.error(
+        "Ocean shader:",
+        gl.getProgramInfoLog(program),
+        gl.getShaderInfoLog(vertexShader),
+        gl.getShaderInfoLog(fragmentShader),
+      );
+      gl.deleteProgram(program);
+    }
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
+    return linked ? program : null;
   }
-  const linked = gl.getProgramParameter(prog, gl.LINK_STATUS);
-  if (!linked) {
-    console.error("Ocean shader:", gl.getProgramInfoLog(prog),
-      gl.getShaderInfoLog(vertexShader), gl.getShaderInfoLog(fragmentShader));
-    gl.deleteProgram(prog);
-  }
-  gl.deleteShader(vertexShader);
-  gl.deleteShader(fragmentShader);
-  if (!linked) return;
-  gl.useProgram(prog);
 
+  let program = await linkOceanProgram(PREVIEW_FS);
+  let usingPreview = Boolean(program);
+  if (!program && parallelCompile && !gl.isContextLost()) {
+    program = await linkOceanProgram(FS);
+  }
+  if (!program) return;
   const buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.bufferData(
@@ -960,12 +1029,11 @@
     new Float32Array([-1, -1, 3, -1, -1, 3]),
     gl.STATIC_DRAW,
   );
-  const aPos = gl.getAttribLocation(prog, "aPos");
-  gl.enableVertexAttribArray(aPos);
-  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
   const U = {};
-  [
+  const uniformNames = [
     "uResolution",
     "uTime",
     "uSunDir",
@@ -998,7 +1066,24 @@
     "uStarSeed",
     "uAurora",
     "uCloudTime",
-  ].forEach((n) => (U[n] = gl.getUniformLocation(prog, n)));
+  ];
+  function useOceanProgram(nextProgram) {
+    gl.useProgram(nextProgram);
+    for (const name of uniformNames) {
+      U[name] = gl.getUniformLocation(nextProgram, name);
+    }
+  }
+  useOceanProgram(program);
+
+  async function upgradeOcean() {
+    const fullProgram = await linkOceanProgram(FS);
+    if (!fullProgram) return;
+    useOceanProgram(fullProgram);
+    gl.deleteProgram(program);
+    program = fullProgram;
+    usingPreview = false;
+    resize();
+  }
 
   /* ---------------- 尺寸 ---------------- */
   let W = 0,
@@ -1008,17 +1093,18 @@
   let renderScale = 1;
   const HORIZON_UV = 0.22;
   const MAX_PIXELS = 1.4e6;
+  const PREVIEW_MAX_PIXELS = 4.5e5;
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
     const cssW = window.innerWidth,
       cssH = window.innerHeight;
     let s = dpr;
     const total = cssW * cssH * s * s;
-    if (total > MAX_PIXELS) s = Math.sqrt(MAX_PIXELS / (cssW * cssH));
-    s = Math.max(0.5, s);
+    const maxPixels = usingPreview ? PREVIEW_MAX_PIXELS : MAX_PIXELS;
+    if (total > maxPixels) s = Math.sqrt(maxPixels / (cssW * cssH));
     renderScale = s;
-    W = Math.floor(cssW * s);
-    H = Math.floor(cssH * s);
+    W = Math.max(1, Math.floor(cssW * s));
+    H = Math.max(1, Math.floor(cssH * s));
     canvas.width = W;
     canvas.height = H;
     canvas.style.width = cssW + "px";
@@ -1030,6 +1116,7 @@
   /* ---------------- Phillips 波谱 ---------------- */
   const NUM_WAVES = 14;
   const waveUniform = new Float32Array(NUM_WAVES * 4);
+  const previewWaveUniform = waveUniform.subarray(0, PREVIEW_WAVES * 4);
   function mulberry32(seed) {
     return function () {
       seed |= 0;
@@ -2384,7 +2471,7 @@
     );
     gl.uniform1f(U.uHorizonUv, HORIZON_UV);
     gl.uniform1f(U.uChoppy, p.nightness > 0.5 ? 0.3 : 0.5);
-    gl.uniform4fv(U.uWaves, waveUniform);
+    gl.uniform4fv(U.uWaves, usingPreview ? previewWaveUniform : waveUniform);
 
     // 涟漪渲染：按当前可见能量排序选 top 16，避免雨滴涟漪挤占槽位导致截停消失。
     // 能量评分近似 shader 中的包络（attack * release * damping），能量越低越先让出槽位，
@@ -2422,6 +2509,12 @@
     if (firstFrame) {
       firstFrame = false;
       document.body.classList.remove("ocean-pending");
+      if (usingPreview && parallelCompile) {
+        // 让首帧先提交到屏幕；之后查询异步链接进度时继续绘制轻量海面。
+        requestAnimationFrame(() => {
+          upgradeOcean().catch((error) => console.error("Ocean upgrade:", error));
+        });
+      }
     }
     requestAnimationFrame(frame);
   }

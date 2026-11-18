@@ -55,7 +55,7 @@ body {
   display: block;
   z-index: 0;
   cursor: crosshair;
-  transition: opacity 0.6s ease-out;
+  transition: opacity 0.25s ease-out;
 }
 
 /* ================= 顶部 HUD ================= */
