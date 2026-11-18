@@ -18,21 +18,9 @@
   box-sizing: border-box;
 }
 
-/* 加载淡入：遮盖 shader 编译/链接期间的冻结感。
-   .loading 下所有可见层 opacity:0；首帧绘制后 JS 移除 .loading，整体 0.6s 淡入 */
-body.loading #ocean-canvas,
-body.loading .hud,
-body.loading .tagline,
-body.loading .islands,
-body.loading .footer-hint {
+.ocean-pending #ocean-canvas {
   opacity: 0;
-}
-#ocean-canvas,
-.hud,
-.tagline,
-.islands,
-.footer-hint {
-  transition: opacity 0.6s ease-out;
+  pointer-events: none;
 }
 
 html,
@@ -55,6 +43,7 @@ body {
   color: var(--hud-fg);
   width: 100vw;
   height: 100dvh;
+  background: var(--ocean-placeholder, linear-gradient(#0a1830, #133b54));
 }
 
 /* 背景画布 */
@@ -66,6 +55,7 @@ body {
   display: block;
   z-index: 0;
   cursor: crosshair;
+  transition: opacity 0.6s ease-out;
 }
 
 /* ================= 顶部 HUD ================= */
@@ -405,9 +395,29 @@ body {
   pointer-events: auto;
 }
 
+.islands.is-static {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 210px));
+  align-content: center;
+  justify-items: center;
+}
+.islands.is-static .island {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  will-change: auto;
+}
+@media (max-width: 880px) {
+  .islands.is-static {
+    grid-template-columns: repeat(2, minmax(0, 200px));
+    gap: 14px;
+  }
+  .islands.is-static .island {
+    height: min(24dvh, 220px);
+  }
+}
+
 .island {
-  --bob-dur: 7s;
-  --bob-delay: 0s;
   --raft-tilt: -0.8deg;
   width: clamp(150px, 22vw, 210px);
   height: clamp(245px, 32vh, 292px);
@@ -420,10 +430,6 @@ body {
   transition: filter 0.28s ease-out, opacity 0.4s ease;
   filter: drop-shadow(0 22px 28px rgba(6, 30, 60, 0.38));
   will-change: transform, left, top;
-}
-.island.is-css-float {
-  animation: water-drift var(--bob-dur) ease-in-out infinite;
-  animation-delay: var(--bob-delay);
 }
 .island[data-type="blog"] {
   --raft-tilt: -1.2deg;
@@ -800,27 +806,6 @@ body {
   mix-blend-mode: screen;
 }
 
-/* 浮动呼吸动画 */
-@keyframes water-drift {
-  0%,
-  100% {
-    transform: translate3d(0, 2px, 0) rotateZ(calc(var(--raft-tilt) - 0.35deg))
-      rotateX(0.8deg);
-  }
-  28% {
-    transform: translate3d(-1px, -5px, 0)
-      rotateZ(calc(var(--raft-tilt) + 0.2deg)) rotateX(-0.8deg);
-  }
-  58% {
-    transform: translate3d(1px, -10px, 0)
-      rotateZ(calc(var(--raft-tilt) + 0.6deg)) rotateX(1.1deg);
-  }
-  82% {
-    transform: translate3d(0, -4px, 0) rotateZ(calc(var(--raft-tilt) - 0.1deg))
-      rotateX(-0.5deg);
-  }
-}
-
 @keyframes bob {
   0%,
   100% {
@@ -893,6 +878,7 @@ body[data-theme="night"] {
   --hud-fg: rgba(228, 240, 255, 0.95);
 }
 body[data-theme="day"] {
+  --ocean-placeholder: linear-gradient(#83b8dc, #b6d9e8 45%, #3576a0);
   --hud-fg: rgba(11, 31, 51, 0.88);
   --hud-fg-dim: rgba(11, 31, 51, 0.6);
   --glass: rgba(255, 255, 255, 0.35);
@@ -941,6 +927,7 @@ body[data-theme="day"] .island::after {
 /* ================= 黄昏：暖色玻璃 + 暖白文字 =================
    黄昏海面天空偏橙红，背景已较暗 → 用暖白浅色文字，与橙红海面协调 */
 body[data-theme="dusk"] {
+  --ocean-placeholder: linear-gradient(#453c59, #846373 46%, #203c63);
   --hud-fg: rgba(255, 240, 220, 0.95);
   --hud-fg-dim: rgba(255, 220, 190, 0.66);
   --glass: rgba(255, 200, 150, 0.18);
@@ -1051,6 +1038,9 @@ body,
 
 /* 减弱动画偏好 */
 @media (prefers-reduced-motion: reduce) {
+  #ocean-canvas {
+    transition: none;
+  }
   .island,
   .hud-mark {
     animation: none !important;

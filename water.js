@@ -8,7 +8,7 @@
    - 随涌浪弯曲、漂移和渐进消散的频散涟漪波包
    - 按地点与日期计算日月位置、月相、银河转动与气辉；手动可切：自动 / 白天 / 黄昏 / 夜晚
    ========================================================= */
-(function () {
+(async function () {
   "use strict";
 
   const canvas = document.getElementById("ocean-canvas");
@@ -926,16 +926,31 @@
     const s = gl.createShader(type);
     gl.shaderSource(s, src);
     gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
-      console.error("shader:", gl.getShaderInfoLog(s));
     return s;
   }
+  const parallelCompile = gl.getExtension("KHR_parallel_shader_compile");
+  const vertexShader = compile(VS, gl.VERTEX_SHADER);
+  const fragmentShader = compile(FS, gl.FRAGMENT_SHADER);
   const prog = gl.createProgram();
-  gl.attachShader(prog, compile(VS, gl.VERTEX_SHADER));
-  gl.attachShader(prog, compile(FS, gl.FRAGMENT_SHADER));
+  gl.attachShader(prog, vertexShader);
+  gl.attachShader(prog, fragmentShader);
   gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS))
-    console.error("link:", gl.getProgramInfoLog(prog));
+  if (parallelCompile) {
+    // 直接查询 LINK_STATUS 会同步等待驱动完成复杂着色器的编译。
+    while (!gl.getProgramParameter(prog, parallelCompile.COMPLETION_STATUS_KHR)) {
+      if (gl.isContextLost()) return;
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+  }
+  const linked = gl.getProgramParameter(prog, gl.LINK_STATUS);
+  if (!linked) {
+    console.error("Ocean shader:", gl.getProgramInfoLog(prog),
+      gl.getShaderInfoLog(vertexShader), gl.getShaderInfoLog(fragmentShader));
+    gl.deleteProgram(prog);
+  }
+  gl.deleteShader(vertexShader);
+  gl.deleteShader(fragmentShader);
+  if (!linked) return;
   gl.useProgram(prog);
 
   const buf = gl.createBuffer();
@@ -1590,7 +1605,7 @@
      3. 真实过渡：积云(白,慢)→厚云(白)→乌云化(渐暗灰)→雨→雨停→乌云渐白→白云消散
         每步都有平滑过程，不会突变
      4. 解耦：cloudLevel(厚度) 与 cloudDarken(乌化) 独立，白云可厚不乌
-     5. localStorage 持久化剧本，避免每次重算（同日期种子结果一致，缓存安全）
+     5. 当前日期的剧本在内存中复用；刷新后由同一日期种子重建
 
      真实过渡时序（剧本按真实小时安排，状态平滑跟随）：
      - 积云堆积：0.8-1.5 小时（白云逐渐变厚，不乌）
@@ -1676,33 +1691,6 @@
     cachedPlan = generateDailyPlan(date);
     cachedPlanDate = ds;
     return cachedPlan;
-  }
-
-  // localStorage 持久化：存剧本+上次同步时间，刷新后对照真实时间恢复
-  const WEATHER_STORAGE_KEY = "galok_weather_plan_v1";
-  function loadStoredPlan() {
-    try {
-      const raw = localStorage.getItem(WEATHER_STORAGE_KEY);
-      if (!raw) return null;
-      const obj = JSON.parse(raw);
-      return obj;
-    } catch (e) {
-      return null;
-    }
-  }
-  function saveStoredPlan(plan) {
-    try {
-      localStorage.setItem(
-        WEATHER_STORAGE_KEY,
-        JSON.stringify({
-          dateSeed: plan.dateSeed,
-          events: plan.events,
-          savedAt: Date.now(),
-        }),
-      );
-    } catch (e) {
-      /* localStorage 不可用时静默降级 */
-    }
   }
 
   // 根据真实时间查剧本，得当前天气目标状态（不是瞬时值，是"该在哪个阶段"）
@@ -1836,8 +1824,6 @@
     // ---- 用真实时间查剧本，得当前天气目标 ----
     const nowDate = new Date(targetDateMs());
     const planState = queryPlanState(nowDate);
-    // 持久化剧本（同日期只存一次）
-    saveStoredPlan(getDailyPlan(nowDate));
 
     // ---- 目标值确定 ----
     let cloudTarget = planState.cloudTarget;
@@ -2205,6 +2191,7 @@
   let auroraBaseStrength = 0; // 当天极光基础强度（由日期种子决定）
   let auroraDateCache = -1; // 缓存当天的极光决策（日期 key）
   resize();
+  let firstFrame = true;
   function frame(now) {
     perfTime = (now - start) / 1000;
     const rawDt = (now - last) / 1000;
@@ -2432,10 +2419,12 @@
     gl.uniform4fv(U.uRipples, rippleUniform);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    // 首帧已提交 GPU，移除 loading 类触发整体淡入，遮盖 shader 编译期的冻结感
-    if (document.body.classList.contains("loading"))
-      document.body.classList.remove("loading");
+    if (firstFrame) {
+      firstFrame = false;
+      document.body.classList.remove("ocean-pending");
+    }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-})();
+  window.dispatchEvent(new Event("galok-ocean-ready"));
+})().catch((error) => console.error("Ocean initialization:", error));

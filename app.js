@@ -101,7 +101,6 @@
       el.target = s.target || "_self";
       if (el.target === "_blank") el.rel = "noopener noreferrer";
       el.style.setProperty("--accent", s.accent || "#4a9fd6");
-      el.style.setProperty("--bob-delay", (i * 1.35).toFixed(2) + "s");
       el.setAttribute("aria-label", `${s.name} — ${s.desc}`);
 
       el.innerHTML = `
@@ -300,32 +299,18 @@
   const reduceMotion =
     window.matchMedia &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let floatingIslands = [];
   function updateBuoyancy(now) {
-    const objects = islandsEl ? islandsEl.querySelectorAll(".island") : [];
     const ocean = window.GalokOcean;
-    const t =
-      ocean && typeof ocean.time === "number" ? ocean.time : now * 0.001;
+    const t = ocean.time;
     const dt = Math.min(
       0.08,
       Math.max(0.001, (now - (updateBuoyancy.last || now)) * 0.001),
     );
     updateBuoyancy.last = now;
-    const canRipple = !!(ocean && typeof ocean.rippleAt === "function");
-    const canProject = !!(ocean && typeof ocean.projectWorld === "function");
     const order = [];
 
-    objects.forEach((el) => {
-      if (!ocean || typeof ocean.sampleSurface !== "function") {
-        el.classList.add("is-css-float");
-        el.style.left = `calc(50% + ${(Number(el.dataset.floatX) || 0) * 70}px)`;
-        el.style.top = "55%";
-        return;
-      }
-      el.classList.remove("is-css-float");
-      if (reduceMotion) {
-        el.style.transform = "translate(-50%, -50%)";
-        return;
-      }
+    floatingIslands.forEach((el) => {
       const x = Number(el.dataset.floatX) || 0;
       const z = Number(el.dataset.floatZ) || 2.5;
       const surface = ocean.sampleSurface(x, z, t);
@@ -340,44 +325,36 @@
       state.rx += (targetRx - state.rx) * follow;
       state.ry += (targetRy - state.ry) * follow;
 
-      if (canProject) {
-        // 卡片世界坐标：水面漂移 + 水面高度；投影到屏幕，随相机姿态变化
-        const proj = ocean.projectWorld(x + surface.driftX, surface.height, z);
-        if (!proj.visible) {
-          el.style.opacity = "0";
-          el.style.pointerEvents = "none";
-          state.inited = false; // 重新可见时直接定位，避免从旧位置缓动
-          return;
-        }
-        el.style.opacity = "";
-        el.style.pointerEvents = "";
-        if (!state.inited) {
-          state.px = proj.px;
-          state.py = proj.py;
-          state.scale = proj.scale;
-          state.inited = true;
-        } else {
-          state.px += (proj.px - state.px) * follow;
-          state.py += (proj.py - state.py) * follow;
-          state.scale += (proj.scale - state.scale) * follow;
-        }
-        el.style.left = state.px.toFixed(1) + "px";
-        el.style.top = state.py.toFixed(1) + "px";
-        el.style.transform = `translate(-50%, -50%) scale(${state.scale.toFixed(
-          3,
-        )}) rotateX(${state.rx.toFixed(2)}deg) rotateY(${state.ry.toFixed(2)}deg)`;
-        order.push({ el, depth: proj.depth });
-      } else {
-        el.style.left = `calc(50% + ${x * 70}px)`;
-        el.style.top = "55%";
-        el.style.transform = `translate(-50%, -50%) rotateX(${state.rx.toFixed(
-          2,
-        )}deg) rotateY(${state.ry.toFixed(2)}deg)`;
+      // 卡片世界坐标：水面漂移 + 水面高度；投影到屏幕，随相机姿态变化
+      const proj = ocean.projectWorld(x + surface.driftX, surface.height, z);
+      if (!proj.visible) {
+        el.style.opacity = "0";
+        el.style.pointerEvents = "none";
+        state.inited = false; // 重新可见时直接定位，避免从旧位置缓动
+        return;
       }
+      el.style.opacity = "";
+      el.style.pointerEvents = "";
+      if (!state.inited) {
+        state.px = proj.px;
+        state.py = proj.py;
+        state.scale = proj.scale;
+        state.inited = true;
+      } else {
+        state.px += (proj.px - state.px) * follow;
+        state.py += (proj.py - state.py) * follow;
+        state.scale += (proj.scale - state.scale) * follow;
+      }
+      el.style.left = state.px.toFixed(1) + "px";
+      el.style.top = state.py.toFixed(1) + "px";
+      el.style.transform = `translate(-50%, -50%) scale(${state.scale.toFixed(
+        3,
+      )}) rotateX(${state.rx.toFixed(2)}deg) rotateY(${state.ry.toFixed(2)}deg)`;
+      order.push({ el, depth: proj.depth });
 
       // 卡片在自己水面位置周期性泛起微弱涟漪 —— 让水面"知道"卡片存在。
       // hover 时卡片悬浮离开水面 → 暂停涟漪，视觉上像被托起。
-      if (canRipple && !el.matches(":hover")) {
+      if (!el.matches(":hover")) {
         let sched = rippleSchedules.get(el);
         if (!sched) {
           sched = { nextAt: t + 0.6 + Math.random() * 1.4 };
@@ -417,6 +394,40 @@
   setInterval(tickClock, 1000);
 
   /* ---------- 启动 ---------- */
+  function startOcean() {
+    const script = document.createElement("script");
+    script.src = "./water.min.js?v=20261118";
+    document.head.appendChild(script);
+  }
+
+  function startOceanAfterPaint() {
+    if (window.PerformanceObserver?.supportedEntryTypes?.includes("paint")) {
+      const observer = new PerformanceObserver((list) => {
+        if (!list.getEntriesByName("first-contentful-paint").length) return;
+        observer.disconnect();
+        startOcean();
+      });
+      observer.observe({ type: "paint", buffered: true });
+    } else {
+      requestAnimationFrame(() => requestAnimationFrame(startOcean));
+    }
+  }
+
+  window.addEventListener("galok-ocean-ready", () => {
+    syncTheme();
+    applyWeather();
+    applyTimeScale();
+    applyWind();
+    applyView(curView);
+    tickClock();
+    if (!islandsEl || reduceMotion) return;
+    floatingIslands = islandsEl.querySelectorAll(".island");
+    requestAnimationFrame((now) => {
+      islandsEl.classList.remove("is-static");
+      updateBuoyancy(now);
+    });
+  }, { once: true });
+
   function init() {
     render();
     syncTheme();
@@ -424,7 +435,8 @@
     applyTimeScale(); // 同步时间流速按钮初始状态（默认 1×）
     applyWind(); // 同步风力按钮初始状态（默认无风）
     tickClock();
-    requestAnimationFrame(updateBuoyancy);
+    // 给静态首屏一次绘制机会，再下载和启动 WebGL。
+    startOceanAfterPaint();
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);

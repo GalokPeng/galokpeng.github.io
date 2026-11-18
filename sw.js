@@ -6,7 +6,7 @@
  */
 const CACHE = 'galok-v3';
 const LEGACY_CACHES = ['galok-v1', 'galok-v2'];
-const OFFLINE_ASSETS = ['./', './index.html', './water.min.js', './lightblock-icon.png'];
+const OFFLINE_ASSETS = ['./', './index.html', './water.min.js?v=20261118', './lightblock-icon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

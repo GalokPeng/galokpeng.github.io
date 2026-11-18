@@ -27,7 +27,7 @@ galok-page/
 └── README.md
 ```
 
-> **性能说明**：线上实测瓶颈是 `water.js`（111KB）的下载与 HTTP/1.1 队头阻塞。优化后把 CSS 与 app.js 内联进 HTML，只保留 `water.min.js`（64KB）一个外部请求；配合 `preload` 与 GitHub Pages 自带的 `max-age=600` HTTP 缓存，首次加载和回访都明显加快。
+> **首屏加载**：内联 CSS 和应用脚本先显示可点击的静态卡片，随后加载 `water.min.js`。支持 `KHR_parallel_shader_compile` 的浏览器会异步等待 WebGL 着色器链接，海面在首帧绘制后出现。
 >
 > **维护提醒**：`index.html` 内联了 CSS 与 app.js，页面只加载 `water.min.js`。只改源文件（`style.css` / `app.js` / `water.js`）**不会改变线上页面**，必须重新生成压缩产物并同步内联：
 > ```
@@ -35,7 +35,7 @@ galok-page/
 > npx terser app.js -c -m --comments false -o app.min.js
 > # 然后把 style.min.css 和 app.min.js 的内容重新内联到 index.html
 > ```
-> `sw.js` 已改为网络优先，日常改内容**不需要**再手动 +1 缓存版本号。
+> `sw.js` 网络优先，缓存仅用于离线。需要为海水引擎更新 URL 时，同时更新 `app.js` 和 `sw.js` 的资源地址。
 
 ## 快速自定义（只改 app.js 顶部）
 
