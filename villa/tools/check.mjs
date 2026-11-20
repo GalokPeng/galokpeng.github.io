@@ -157,7 +157,8 @@ try{
     await pose(1.50,-13.5,[1.50,1.54,-5.1]);
     await page.keyboard.down('KeyW');await page.waitForFunction(()=>window.villaTest.state().pos[2]>-5.32);await page.keyboard.up('KeyW');
     assert.equal(await page.locator('#location').innerText(),'客厅');
-    await pose(1.60,-6.76,await page.evaluate(()=>villaTest.handle()));await pressInteraction();await page.waitForFunction(()=>window.villaTest.state().angle<.04);
+    // Stand clear of the leaf's swept arc before pulling the door shut.
+    await pose(1.45,-5.10,await page.evaluate(()=>villaTest.handle()));await pressInteraction();await page.waitForFunction(()=>window.villaTest.state().angle<.04);
     assert.ok(await page.evaluate(()=>window.villaTest.blocked(1.48,-6.10)));
     await pose(1.5,-9.5,[-28,4,-99]);await page.screenshot({path:'.qa/terrace.png'});
     await page.selectOption('#weather','storm');await page.waitForTimeout(2000);
