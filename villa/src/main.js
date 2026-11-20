@@ -37,6 +37,7 @@ function launch(){
     o.updateMatrixWorld();const item={name,object:o,distance,action};o.userData.item=item;selectable.push(o);items.push(item);return item;
   }
   const door=house.doors[0];
+  const leaves=[door,...house.windows];
   const doorHandles=door.handles.map(handle=>{
     const item=addTarget(()=>door.target?'关露台门':'开露台门',V(),[.33,.22,.12],3.3,()=>{
       door.target=door.target?0:Math.PI*.49;
@@ -44,10 +45,6 @@ function launch(){
     item.directOnly=true;
     return {item,handle};
   });
-  const curtainSwitch=addTarget(()=>door.curtain.closed?'收起门帘':'放下门帘',door.switchPoint,[.25,.31,.08],2.75,()=>{
-    door.curtain.closed=!door.curtain.closed;
-  });
-  curtainSwitch.directOnly=true;
   const harbor=coast.harbor;
   const boatItem=addTarget(()=>'登船驾驶',V(),[1.98,1.2,3.6],3.2,board);
   boatItem.enabled=()=>harbor.canBoard(player.x,player.z);
@@ -117,7 +114,6 @@ function launch(){
   blockBoxes.push(house.life.bathroom.doorBox);
   const hit=V();
   function occluded(length){
-    if(ray.ray.intersectBox(door.shadeBounds,hit)&&hit.distanceTo(camera.position)<length-.012)return true;
     return blockBoxes.some(b=>ray.ray.intersectBox(b,hit)&&hit.distanceTo(camera.position)<length-.13);
   }
   function pick(){
@@ -177,7 +173,7 @@ function launch(){
   function lieDown(){
     if(mode!=='walk'||transition)return;remember();mode='bed';
     document.body.classList.add('in-bed');
-    const pos=house.bed.position,q=orientation(pos,pos.clone().add(V(0,.29,-1)));
+    const pos=house.bed.position,q=orientation(pos,house.skylight.open?house.skylight.center:pos.clone().add(V(0,.29,-1)));
     moveTo(pos,q,()=>{yaw=camera.rotation.y;pitch=camera.rotation.x;$('stand').hidden=false;});
   }
   function stand(){
@@ -188,14 +184,14 @@ function launch(){
     const q=new T.Quaternion().setFromEuler(new T.Euler(saved.pitch,saved.yaw,0,'YXZ'));
     moveTo(saved.pos,q,()=>{mode='walk';yaw=saved.yaw;pitch=saved.pitch;});
   }
-  function doorDistance(x,z,angle){
-    const a=door.pivot.position,dx=x-a.x,dz=z-a.z,c=Math.cos(angle),s=Math.sin(angle);
-    const along=T.MathUtils.clamp(dx*c-dz*s,0,door.width);
+  function leafDistance(leaf,x,z,angle){
+    const a=leaf.pivot.position,dx=x-a.x,dz=z-a.z,c=Math.cos(angle),s=Math.sin(angle);
+    const along=T.MathUtils.clamp(dx*c-dz*s,0,leaf.width);
     return Math.hypot(dx-c*along,dz+s*along);
   }
   function blocked(x,z){
     if(house.life.bathroom.blocks(x,z,radius))return true;
-    if((islandRadius(x,z)>.943&&!onPier(x,z,radius))||doorDistance(x,z,door.angle)<radius+.045)return true;
+    if((islandRadius(x,z)>.943&&!onPier(x,z,radius))||leaves.some(leaf=>leafDistance(leaf,x,z,leaf.angle)<radius+.045))return true;
     return house.blockers.some(b=>{
       const dx=Math.max(Math.abs(x-b.x)-b.w/2,0),dz=Math.max(Math.abs(z-b.z)-b.d/2,0);
       return dx*dx+dz*dz<radius*radius;
@@ -297,12 +293,14 @@ function launch(){
     const frameMs=Math.max(0,now-last),dt=Math.min(.075,frameMs/1000);last=now;elapsed+=dt;
     adaptResolution(frameMs);
     let movingCaster=false;
-    if(door.angle!==door.target){
-      let next=T.MathUtils.damp(door.angle,door.target,6,dt);
-      if(Math.abs(next-door.target)<.001)next=door.target;
-      if(mode!=='walk'||doorDistance(player.x,player.z,next)>radius+.045){
-        door.angle=next;door.pivot.rotation.y=next;movingCaster=true;
-        if(next===door.target)refreshRoomShadow('客厅灯');
+    for(const leaf of leaves){
+      if(leaf.angle===leaf.target)continue;
+      let next=T.MathUtils.damp(leaf.angle,leaf.target,6,dt);
+      if(Math.abs(next-leaf.target)<.001)next=leaf.target;
+      if(mode!=='walk'||leafDistance(leaf,player.x,player.z,next)>radius+.045){
+        leaf.angle=next;leaf.pivot.rotation.y=next;movingCaster=true;
+        if(leaf.crank)leaf.crank.rotation.z=-next*7;
+        if(next===leaf.target)refreshRoomShadow(leaf.room);
       }
     }
     for(const {item,handle} of doorHandles){
@@ -322,15 +320,17 @@ function launch(){
     for(const pair of house.curtains){
       const goal=Number(pair.closed);
       if(pair.fraction===goal)continue;
-      const next=pair.travelSeconds
-        ?pair.fraction+T.MathUtils.clamp(goal-pair.fraction,-dt/pair.travelSeconds,dt/pair.travelSeconds)
-        :T.MathUtils.damp(pair.fraction,goal,6,frameMs/1000);
+      const next=T.MathUtils.damp(pair.fraction,goal,6,frameMs/1000);
       pair.fraction=Math.abs(next-goal)<.002?goal:next;
       for(const panel of pair.panels)panel.setFraction(pair.fraction);
       movingCaster=true;
       if(pair.fraction===goal)refreshRoomShadow(pair.room);
     }
-    const sky=coast.update(elapsed,movingCaster);
+    if(house.skylight.update(dt)){
+      movingCaster=true;
+      if(house.skylight.fraction===Number(house.skylight.open))refreshRoomShadow('卧室灯');
+    }
+    const sky=coast.update(elapsed,movingCaster);house.privacy.update(dt,sky);
     const prevHeading=harbor.heading;
     harbor.update(dt,sky,T.MathUtils.clamp(forwardInput(),-1,1),T.MathUtils.clamp(sideInput(),-1,1));
     if(mode==='boat'){

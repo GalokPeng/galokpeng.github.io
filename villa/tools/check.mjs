@@ -37,9 +37,12 @@ await page.route('**/src/main.js*',async route=>{
     'advancePetUntil:(key,value,limit)=>{for(let i=0;i<limit*30;i++){house.pet.update(elapsed+i/30,1/30);if(house.pet[key]===value)return true;}return false;},',
     'bones:()=>{const skins=[];scene.traverse(o=>{if(o.isSkinnedMesh)skins.push(o.skeleton.bones.length);});return skins;}',
     ',curtainHits:(x,y,outside=false)=>{const dir=outside?1:-1;const r=new T.Raycaster(V(x,y,outside?-7:-4.3),V(0,0,dir));return r.intersectObjects(house.curtains[0].panels.map(p=>p.cloth),false).length>0;}',
-    ',doorCurtain:()=>door.curtain.fraction,wallSwitch:()=>door.switchPoint.toArray(),handle:(side=0)=>door.pivot.localToWorld(door.handles[side].clone()).toArray(),',
-    'controlState:()=>[door.target,...house.curtains.map(pair=>pair.closed)],',
-    'doorClothAt:(x,y)=>{const r=new T.Raycaster(V(door.pivot.position.x+x,y,door.pivot.position.z+.65),V(0,0,-1),0,1);return r.intersectObjects(door.curtain.panels.map(p=>p.cloth)).length>0;},',
+    ',handle:(side=0)=>door.pivot.localToWorld(door.handles[side].clone()).toArray(),',
+    'glass:()=>({amount:house.privacy.amount,opacity:house.privacy.film.opacity,privacy:house.privacy.privateMode}),',
+    'windowState:()=>house.windows.map(w=>[w.angle,w.target,w.action.point.toArray()]),',
+    'windowPaneAt:i=>{const w=house.windows[i],p=w.pivot.position,r=new T.Raycaster(V(p.x+w.width*.76,1.72,p.z+.10),V(0,0,-1),0,.23);return r.intersectObjects(scene.children,true).some(h=>h.object.material.transparent&&!h.object.material.isShaderMaterial);},',
+    'skylight:()=>({fraction:house.skylight.fraction,pane:house.skylight.pane.matrixWorld.toArray(),point:house.skylight.action.point.toArray()}),',
+    'roofAt:(x,z)=>{const r=new T.Raycaster(V(x,8,z),V(0,-1,0),0,4.27),hits=r.intersectObjects(scene.children,true);return {glass:hits.some(h=>h.object===house.skylight.pane),solid:hits.some(h=>h.object.isMesh&&!h.object.material.transparent&&h.point.y<7.2)};},',
     'boat:()=>({z:harbor.vessel.position.z,heading:harbor.heading}),',
     'floorHits:(x,z)=>new T.Raycaster(V(x,.19,z),V(0,-1,0),0,.20).intersectObjects(scene.children,true).filter(h=>Math.abs(h.point.y)<.00001).map(h=>h.object.material.map?.image?.src||""),',
     'facing:()=>camera.getWorldDirection(V()).toArray(),',
@@ -143,8 +146,6 @@ try{
     await page.click('#stand');await settle();
     await pose(-4.31,-8.75,[-5.4,.55,-7.95]);await pressInteraction();assert.equal((await state()).mode,'seat');
     await page.click('#stand');await settle();
-    await pose(2.34,-4.52,await page.evaluate(()=>villaTest.wallSwitch()));await pressInteraction();
-    await page.waitForFunction(()=>villaTest.doorCurtain()===0);
     await pose(1.48,-5.3,await page.evaluate(()=>villaTest.handle()));
     assert.ok(await page.evaluate(()=>window.villaTest.blocked(1.48,-6.1)));
     await pressInteraction();await page.waitForFunction(()=>window.villaTest.state().angle>1.42);

@@ -217,7 +217,7 @@ export function buildCoast(scene,renderer,exterior){
   rainGeo.setAttribute('tail',new T.BufferAttribute(ends,1));
   const rainMat=new T.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{time:uniforms.time,amount:{value:0},drift:{value:new T.Vector2()}},
     vertexShader:'attribute float tail; uniform float time; uniform vec2 drift; varying vec3 drop; void main(){drop=position;drop.y=mod(position.y-time*8.0,17.0)-2.5+tail;drop.xz+=drop.y*drift; gl_Position=projectionMatrix*modelViewMatrix*vec4(drop,1.0);}',
-    fragmentShader:'varying vec3 drop; uniform float amount; void main(){bool house=abs(drop.x)<11.55&&abs(drop.z)<6.62&&drop.y<4.1;bool library=abs(drop.x+6.85)<4.39&&abs(drop.z-8.94)<3.14&&drop.y<3.91;bool bath=abs(drop.x-7.525)<3.68&&abs(drop.z-8.37)<2.45&&drop.y<3.7;if(house||library||bath)discard;gl_FragColor=vec4(.73,.82,.87,.31*amount);}'});
+    fragmentShader:'varying vec3 drop; uniform float amount; void main(){float roof=4.1+2.9*min((11.55-abs(drop.x))/5.90,1.-abs(drop.z)/6.62);bool house=abs(drop.x)<11.55&&abs(drop.z)<6.62&&drop.y<roof+.05;bool library=abs(drop.x+6.85)<4.39&&abs(drop.z-8.94)<3.14&&drop.y<3.91;bool bath=abs(drop.x-7.525)<3.68&&abs(drop.z-8.37)<2.45&&drop.y<3.7;if(house||library||bath)discard;gl_FragColor=vec4(.73,.82,.87,.31*amount);}'});
   const rain=new T.LineSegments(rainGeo,rainMat);rain.frustumCulled=false;scene.add(rain);
   let shadowAt=-100;
   const lastLightPosition=V();

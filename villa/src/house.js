@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { household } from './household.js';
 import { adoptCat } from './cat.js';
+import {smartGlass,casement,wallButton,bedroomSkylight,ceilingLayer,ceilingBeam,roofAroundSkylight} from './glazing.js';
 import { M, V, asset, material, glass, cotton, box, group, mesh, ball, cylinder, rod, tube, bake, contact, furnish } from './studio.js';
 
 const H=3.82, Z=-6.1;
@@ -10,7 +11,7 @@ const grille=material(0x32332e,.91), porcelain=material(0xece9db,.27);
 const curtainLinen=cotton.clone();
 curtainLinen.side=T.DoubleSide;
 
-function arch(p,x,w,base=.42,isDoor=false){
+function arch(p,x,w,base,doorFilm,operable){
   const spring=archSpring,rise=archRise, top=H+.05, r=w/2;
   const shape=new T.Shape();shape.moveTo(-r,top);shape.lineTo(r,top);shape.lineTo(r,spring);
   const curve=[];
@@ -31,12 +32,18 @@ function arch(p,x,w,base=.42,isDoor=false){
   for(const f of [.25,.5,.75]){
     const a=f*Math.PI; rod(p,V(x,spring,Z),V(x+Math.cos(a)*r*.97,spring+Math.sin(a)*rise*.94,Z),.019,M.bronze);
   }
-  if(isDoor)return;
+  if(doorFilm){
+    const half=new T.Shape();half.moveTo(-r+.035,0);half.lineTo(r-.035,0);
+    half.absellipse(0,0,r-.035,rise-.023,0,Math.PI,false,0);half.closePath();
+    mesh(p,new T.ShapeGeometry(half,32),doorFilm,x,spring,Z-.012);
+    return;
+  }
   box(p,x,base/2,Z,w,base,.32,M.plaster);
   box(p,x,base+.025,Z+.025,w+.18,.085,.48,M.stone);
   box(p,x,(spring+base)/2,Z,.072,spring-base,.079,M.walnut);
-  box(p,x,1.36,Z,w,.042,.075,M.walnut);
-  box(p,x,(spring+base)/2,Z-.035,w-.10,spring-base,.012,glass);
+  const paneX=operable?x+w/4:x,paneW=operable?w/2:w;
+  box(p,paneX,1.36,Z,paneW,.042,.075,M.walnut);
+  box(p,paneX,(spring+base)/2,Z-.035,paneW-.08,spring-base,.012,glass);
 }
 
 function curtain(scene,anchor,sign,travel,{z=Z+.28,bottom=.085,top=3.42,scale=1}={}){
@@ -76,39 +83,6 @@ function curtain(scene,anchor,sign,travel,{z=Z+.28,bottom=.085,top=3.42,scale=1}
   setFraction(1);rings.computeBoundingSphere();setFraction(0);
   return {cloth,rings,setFraction};
 }
-function rollerBlind(wall,width,top){
-  const axleZ=.31,core=.027,thickness=.0014;
-  const maxDrop=top-.055,minDrop=.065;
-  const brackets=group(wall);
-  for(const side of [-1,1]){
-    const x=side*(width/2+.018);
-    box(brackets,x,top,.174,.081,.136,.032,M.bronze,.008);
-    box(brackets,x,top,.245,.032,.085,.168,M.brass,.006);
-  }
-  bake(brackets);
-  const axle=group(wall,0,top,axleZ);axle.rotation.z=-Math.PI/2;
-  const spool=cylinder(axle,0,0,0,core,core,width,curtainLinen,32);
-  const fabric=new T.PlaneGeometry(width,1);
-  fabric.translate(0,-.5,0);
-  const cloth=mesh(wall,fabric,curtainLinen,0,top,axleZ);
-  const hem=box(wall,0,top,axleZ,width+.014,.028,.024,M.bronze,.007);
-  const uv=fabric.attributes.uv,bounds=new T.Box3();
-  for(let i=0;i<uv.count;i++)uv.setX(i,uv.getX(i)*width/.85);
-  function setFraction(fraction){
-    const drop=T.MathUtils.lerp(minDrop,maxDrop,fraction);
-    // The remaining fabric winds concentrically around the axle.
-    const radius=Math.sqrt(core*core+(maxDrop-drop)*thickness/Math.PI);
-    spool.scale.set(radius/core,1,radius/core);
-    spool.rotation.y=-(radius-core)*2*Math.PI/thickness;
-    cloth.scale.y=drop;cloth.position.z=axleZ+radius;
-    // Newly exposed linen enters at the top. Keep the weave attached to the hem.
-    for(let i=0;i<uv.count;i++)uv.setY(i,(1+fabric.attributes.position.getY(i))*drop/.85);
-    uv.needsUpdate=true;
-    hem.position.set(0,top-drop,cloth.position.z);
-    bounds.setFromObject(cloth).expandByScalar(.008);
-  }
-  setFraction(1);return {cloth,bounds,setFraction};
-}
 function panel(p,cx,cy,z,w,h,mat=M.trim) {
   for(const side of [-1,1]){
     box(p,cx+side*w/2,cy,z,.038,h+.038,.035,mat,.009);
@@ -145,15 +119,17 @@ function hipRoof(p){
   const left=V(-5.65,7,0),right=V(5.65,7,0);
   const faces=[[corners[0],left,right,corners[1]],[corners[1],right,corners[2]],
     [corners[2],right,left,corners[3]],[corners[3],left,corners[0]]];
-  for(const [i,f] of faces.entries()){
-    const g=new T.BufferGeometry(),coordinates=[],uv=[];
-    for(const v of f){
-      coordinates.push(v.x,v.y,v.z);
-      uv.push((i%2?v.z:v.x)/2.1,(v.y-4.1)/.91);
+  for(const [i,face] of faces.entries()){
+    for(const f of i===2?roofAroundSkylight():[face]){
+      const g=new T.BufferGeometry(),coordinates=[],uv=[];
+      for(const v of f){
+        coordinates.push(v.x,v.y,v.z);
+        uv.push((i%2?v.z:v.x)/2.1,(v.y-4.1)/.91);
+      }
+      g.setAttribute('position',new T.Float32BufferAttribute(coordinates,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
+      g.setIndex(f.length===3?[0,1,2]:[0,1,2,0,2,3]);g.computeVertexNormals();
+      mesh(p,g,M.roof);
     }
-    g.setAttribute('position',new T.Float32BufferAttribute(coordinates,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
-    g.setIndex(f.length===3?[0,1,2]:[0,1,2,0,2,3]);g.computeVertexNormals();
-    mesh(p,g,M.roof);
   }
   rod(p,left,right,.085,M.clay);
   corners.forEach((v,i)=>rod(p,v,i===0||i===3?left:right,.075,M.clay));
@@ -259,18 +235,19 @@ function floorOcclusion(floor,carpet,blockers){
 
 export function buildHouse(scene) {
   const fixed=group(scene),loose=group(scene),exterior=group(scene),shell=group(exterior),loaded=[];
-  const blockers=[],doors=[],devices=[];
+  const blockers=[],doors=[],windows=[],devices=[],privacy=smartGlass();
   const block=(x,z,w,d,name='家具')=>blockers.push({x,z,w,d,name});
   const model=(id,x,z,width,rot=0,y=0)=>loaded.push(furnish(loose,id,x,z,width,rot,y));
   function wall(x,z,w,d,parent=shell){box(parent,x,H/2,z,w,H,d,M.plaster);block(x,z,w,d,'墙');}
   const floorDepth=12.42;
   const floor=box(fixed,0,-.105,0,22.2,.21,floorDepth,M.floor);
-  box(shell,0,H+.09,0,22.5,.18,12.64,M.trim);
-  box(shell,0,H+.28,0,22.9,.2,12.95,M.oak);
+  ceilingLayer(shell,H+.09,22.5,.18,12.64,M.trim);
+  ceilingLayer(shell,H+.28,22.9,.2,12.95,M.oak);
   hipRoof(shell);
   wall(-11,0,.33,12.4);wall(11,0,.33,12.4);
   wall(-10.495,6.1,1.21,.32);wall(.55,6.1,17.28,.32);wall(10.795,6.1,.61,.32);
   const life=household(scene,fixed,shell,block,model,floorDepth/2),pet=adoptCat(scene,fixed,block,life.bathroom),curtains=[];
+  const skylight=bedroomSkylight(exterior,shell,fixed,H);life.actions.push(skylight.action);
   wall(3.78,-2.45,.23,7.29,fixed);wall(3.78,4.52,.23,3.17,fixed);
   box(fixed,3.78,3.26,2.06,.23,1.12,1.77,M.plaster);
   for(const z of [1.2,2.92])box(fixed,3.78,1.38,z,.35,2.76,.12,M.trim);
@@ -281,7 +258,12 @@ export function buildHouse(scene) {
   let prev=-11;
   for(const [a,b] of bays){
     if(a>prev)wall((a+prev)/2,Z,a-prev,.34);
-    const door=a===.66;arch(shell,(a+b)/2,b-a,door?.01:.42,door);
+    const door=a===.66,operable=a===-3.15||a===4.08;
+    arch(shell,(a+b)/2,b-a,door?.01:.42,door?privacy.film:null,operable);
+    if(operable){
+      const sash=casement(exterior,fixed,a+.077,Z+.012,(b-a)/2-.112,.478,archSpring-.047,a<0?'客厅':'卧室');
+      windows.push(sash);life.actions.push(sash.action);
+    }
     if(!door)block((a+b)/2,Z,b-a,.23,'窗');
     prev=b;
   }
@@ -301,7 +283,7 @@ export function buildHouse(scene) {
     box(fixed,0,H-.20,z,21.91,.055,.27,M.trim);
   }
   for(const x of [-10.81,3.77,10.81])box(fixed,x,H-.12,0,.20,.22,12.1,M.trim);
-  for(const x of [-7,-2.8,1.44,7.65])box(fixed,x,H-.035,0,.18,.14,12,M.trim);
+  for(const x of [-7,-2.8,1.44,7.65])ceilingBeam(fixed,x,H-.035);
 
   // Recessed joinery and moulded panels on the interior solid walls.
   const west=group(fixed,-10.816,0,0);west.rotation.y=Math.PI/2;
@@ -320,7 +302,7 @@ export function buildHouse(scene) {
   for(const x of [.047,dw-.047])box(hinge,x,1.24,0,.092,2.48,.092,M.walnut);
   for(const y of [.10,.82,2.44])box(hinge,dw/2,y,0,dw,y===.10?.19:.085,.087,M.walnut);
   box(hinge,dw/2,.43,0,dw-.13,.61,.067,M.green);
-  box(hinge,dw/2,1.63,0,dw-.13,1.56,.019,glass);
+  mesh(hinge,new T.PlaneGeometry(dw-.13,1.56),privacy.film,dw/2,1.63,0);
   box(hinge,dw/2,1.61,0,.041,1.63,.062,M.walnut);
   box(hinge,dw/2,1.59,0,dw-.1,.039,.064,M.walnut);
   const handles=[];
@@ -333,22 +315,11 @@ export function buildHouse(scene) {
     handles.push(handle);
   }
   bake(hinge);
-  const blindMount=group(exterior,hinge.position.x+dw/2,0,Z);
-  const shade=rollerBlind(blindMount,dw+.20,archSpring+archRise+.155);
-  const doorCurtain={closed:true,fraction:1,panels:[shade],room:'客厅灯',travelSeconds:2.8};
-  curtains.push(doorCurtain);
-  // The motor control stays on the room-side wall while the handles travel with the leaf.
   const switchPoint=V(2.97,1.43,Z+.215);
-  const plate=group(fixed,switchPoint.x,switchPoint.y,switchPoint.z);
-  box(plate,0,0,-.024,.172,.226,.036,M.brass,.012);
-  box(plate,0,0,0,.126,.174,.023,M.cream,.009);
-  // Raised roller-shade pictogram on the rocker.
-  box(plate,0,.052,.016,.091,.009,.009,M.bronze);
-  box(plate,0,.018,.016,.077,.057,.007,M.green);
-  box(plate,0,-.016,.016,.087,.008,.009,M.bronze);
-  rod(plate,V(0,-.022,.019),V(0,-.057,.019),.004,M.bronze);
-  for(const side of [-1,1])rod(plate,V(0,-.057,.019),V(side*.014,-.044,.019),.004,M.bronze);
-  doors.push({pivot:hinge,width:dw,angle:0,target:0,handles,curtain:doorCurtain,shadeBounds:shade.bounds,switchPoint});
+  wallButton(fixed,switchPoint,0,'调光');
+  life.actions.push({label:()=>privacy.privateMode?'门玻璃 · 切换透明':'门玻璃 · 切换雾化',point:switchPoint,
+    size:[.25,.31,.08],range:2.75,directOnly:true,run:privacy.toggle});
+  doors.push({pivot:hinge,width:dw,angle:0,target:0,handles,room:'客厅灯'});
 
   // Living room and its actual projection equipment.
   const carpet=wovenRug(fixed,-6.7,-1.62,5.70,4.92);
@@ -508,6 +479,6 @@ export function buildHouse(scene) {
   for(let i=0;i<7;i++)box(shell,1.5,-.095-i*.17,-10.45-i*.42,2.48,.19,.46,M.stone);
   floorOcclusion(floor,carpet,blockers);
   bake(fixed);bake(shell);
-  return {exterior,blockers,doors,devices,soundAt,life,pet,curtains,bed:{position:V(bx,.99,bz+.85),exit:V(bx-1.74,1.65,bz-.18)},
+  return {exterior,blockers,doors,windows,privacy,skylight,devices,soundAt,life,pet,curtains,bed:{position:V(bx,.99,bz+.85),exit:V(bx-1.74,1.65,bz-.18)},
     modelReady:Promise.allSettled([...loaded,pet.ready])};
 }

@@ -40,8 +40,8 @@ export async function checkResidence(page,pose,press,settle,state){
   assert.equal(await qa(()=>villaTest.blocked(-8.30,.39)),false);
   assert.equal(await qa(()=>villaTest.blocked(-1.18,-1.76)),true);
   const delta=await qa(()=>villaTest.flashPixels());
-  console.log('Flash pixel change [window, masonry, upper and lower door behind closed curtain]',delta);
-  assert.ok(delta[0]>24&&delta.slice(1).every(d=>Math.abs(d)<5));
+  console.log('Flash pixel change [window, masonry, upper and lower door glass]',delta);
+  assert.ok(delta[0]>24&&Math.abs(delta[1])<5&&delta.slice(2).every(d=>d>24));
   for(const [x,z,at,name] of [
     [-5.75,-1.4,[-4.6,.55,-1.4],'客厅沙发'],[-8.35,8.50,[-9.52,.51,8.55],'书房阅读椅'],
     [-6.7,9.15,[-5.59,.54,9.16],'书桌椅'],[.12,-.30,[-1.18,.54,-1.76],'观海单人椅']]){
@@ -53,36 +53,40 @@ export async function checkResidence(page,pose,press,settle,state){
     }
     await page.click('#stand');await settle();assert.equal((await state()).mode,'walk');
   }
-  const coverage=()=>qa(()=>[.12,.54,1.06,1.79,2.36,2.94].flatMap(y=>[.22,1.38].map(x=>villaTest.doorClothAt(x,y))).concat(villaTest.doorClothAt(.8,3.24)));
-  assert.ok((await coverage()).every(Boolean));
-  await pose(1.47,-2.62,[1.47,1.69,-6.10]);await shot('terrace-door-curtain');
-  await pose(1.54,-4.18,[1.47,1.62,-6.10]);
-  const before=await qa(()=>villaTest.controlState());
-  await press();assert.deepEqual(await qa(()=>villaTest.controlState()),before);
-  await pose(1.8,-4.62,await qa(()=>villaTest.handle()));await press();
-  assert.deepEqual(await qa(()=>villaTest.controlState()),before,'Lowered fabric obscures the inside handle');
-  const wallSwitch=await qa(()=>villaTest.wallSwitch());
-  await pose(2.34,-4.52,wallSwitch);await wait(()=>villaTest.state().target==='收起门帘');await press();
-  await wait(()=>villaTest.doorCurtain()===0);assert.equal((await state()).angle,0);
-  assert.ok((await coverage()).every(hit=>!hit));
-  await pose(1.47,-2.62,[1.47,1.69,-6.10]);await shot('terrace-door-raised');
-  assert.ok((await qa(()=>villaTest.flashPixels())).slice(2).every(d=>d>24));
-  await pose(2.05,-7.63,await qa(()=>villaTest.handle(1)));await wait(()=>villaTest.state().target==='开露台门');
   const clickCenter=()=>page.locator('#view canvas').click({position:{x:page.viewportSize().width/2,y:page.viewportSize().height/2}});
-  await clickCenter();await wait(()=>villaTest.state().angle===Math.PI*.49);assert.equal(await qa(()=>villaTest.doorCurtain()),0);
-  await pose(2.34,-4.52,wallSwitch);await wait(()=>villaTest.state().target==='放下门帘');await clickCenter();
-  await wait(()=>villaTest.doorCurtain()>.40&&villaTest.doorCurtain()<.60);
-  const partial=await qa(()=>[.15,.80,1.45].map(x=>[villaTest.doorClothAt(x,2.16),villaTest.doorClothAt(x,.60)]));
-  assert.deepEqual(partial,[[true,false],[true,false],[true,false]],'The hem descends across the full width');
-  await page.keyboard.press('KeyE');await wait(()=>villaTest.doorCurtain()===0);
+  await pose(2.34,-4.52,[2.97,1.43,-5.885]);await wait(()=>villaTest.state().target?.includes('切换雾化'));await press();
+  await wait(()=>villaTest.glass().amount===1);assert.equal((await state()).angle,0);
+  await pose(1.47,-2.62,[1.47,1.69,-6.10]);await shot('privacy-on');
+  await pose(2.05,-7.63,await qa(()=>villaTest.handle(1)));await wait(()=>villaTest.state().target==='开露台门');
+  await clickCenter();await wait(()=>villaTest.state().angle===Math.PI*.49);assert.ok((await qa(()=>villaTest.glass())).privacy);
+  await pose(2.34,-4.52,[2.97,1.43,-5.885]);await press();await wait(()=>villaTest.glass().amount===0);
   assert.equal((await state()).angle,Math.PI*.49);
-  await clickCenter();
-  await wait(()=>villaTest.doorCurtain()===1);assert.equal((await state()).angle,Math.PI*.49);
-  assert.ok((await coverage()).every(Boolean),'The lowered blind covers the fixed fanlight and the doorway with the leaf open');
-  await pose(-.55,-7.68,await qa(()=>villaTest.handle(1)));await wait(()=>villaTest.state().target==='关露台门');
-  await press();await wait(()=>villaTest.state().angle===0);assert.equal(await qa(()=>villaTest.doorCurtain()),1);
-  assert.ok((await coverage()).every(Boolean),'Closing the door leaves the shade on the wall');
-  await pose(2.34,-4.52,wallSwitch);await press();await wait(()=>villaTest.doorCurtain()===0);
+  await pose(-.55,-7.68,await qa(()=>villaTest.handle(1)));await wait(()=>villaTest.state().target==='关露台门');await press();
+  await wait(()=>villaTest.state().angle===0);
+  await pose(1.47,-2.62,[1.47,1.69,-6.10]);await shot('privacy-clear');
+  for(const [i,name] of ['客厅','卧室'].entries()){
+    const [, ,point]=(await qa(()=>villaTest.windowState()))[i];
+    await pose(point[0]+.34,-4.36,point);await page.waitForFunction(name=>villaTest.state().target==='打开'+name+'窗',name);
+    assert.equal(await qa(i=>villaTest.windowPaneAt(i),i),true);
+    await press();await page.waitForFunction(i=>villaTest.windowState()[i][0]>1.14,i);
+    assert.equal(await qa(i=>villaTest.windowPaneAt(i),i),false);
+    assert.equal((await qa(()=>villaTest.windowState()))[1-i][0],0);
+    await pose(point[0]+.45,-3.30,[point[0]-.35,1.6,-6.25]);await shot(i?'bedroom-window':'living-window');
+    await pose(point[0]+.34,-4.36,point);await press();await page.waitForFunction(i=>villaTest.windowState()[i][0]===0,i);
+    assert.equal(await qa(i=>villaTest.windowPaneAt(i),i),true);
+  }
+  const roof=await qa(()=>villaTest.skylight());
+  const samples=[[6.45,3.38],[7.05,4.08],[7.65,4.67]];
+  for(const p of samples)assert.deepEqual(await qa(p=>villaTest.roofAt(...p),p),{glass:true,solid:true});
+  await pose(8.99,4.40,roof.point);await wait(()=>villaTest.state().target==='拉开天窗白色遮板');
+  await clickCenter();await wait(()=>villaTest.skylight().fraction===1);
+  for(const p of samples)assert.deepEqual(await qa(p=>villaTest.roofAt(...p),p),{glass:true,solid:false});
+  assert.deepEqual((await qa(()=>villaTest.skylight())).pane,roof.pane);
+  await page.selectOption('#sky-time','night');
+  await pose(5.22,4.08,[7.05,.7,4.32]);await press();assert.equal((await state()).mode,'bed');await shot('skylight-from-bed');
+  await page.click('#stand');await settle();await page.selectOption('#sky-time','day');
+  await pose(8.99,4.40,roof.point);await press();await wait(()=>villaTest.skylight().fraction===0);
+  for(const p of samples)assert.deepEqual(await qa(p=>villaTest.roofAt(...p),p),{glass:true,solid:true});
   await pose(1.72,-4.57,await qa(()=>villaTest.handle()));await press();await wait(()=>villaTest.state().angle>1.52);
   // Walk continuously from inside, across the open threshold, down the stairs and onto the pier.
   await pose(1.50,-5.11,[1.50,1.65,-22]);await page.keyboard.down('ShiftLeft');await page.keyboard.down('KeyW');
@@ -107,5 +111,5 @@ export async function checkResidence(page,pose,press,settle,state){
   assert.deepEqual(await qa(()=>villaTest.cat()),resting);
   await pose(1.94,-1.86,[3.18,.36,-1.69]);await press();
   assert.ok(await qa(()=>villaTest.advancePetUntil('activity','eat',150)));
-  console.log('PASS: title, flush study threshold, seaward lounge chair, lightning occlusion, door curtain, seating, scheduled nap, feeding and driving the boat');
+  console.log('PASS: privacy glass, two operable casements, fixed skylight glazing and sliding ceiling panel, seating, pets and boat');
 }
