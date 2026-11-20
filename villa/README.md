@@ -1,6 +1,6 @@
 # Galok的世界
 
-打开页面后，访客会直接站在客厅，视线高度为 1.65 米。房屋约 22 × 12 米，临海一侧有露台和通往岛岸的石阶。[进入 Galok的世界](https://galok.cn/world/)
+打开页面后，访客会直接站在客厅，视线高度为 1.65 米。房屋约 22 × 12 米，临海一侧有露台和通往岛岸的石阶。[进入 Galok的世界](https://galok.cn/)
 
 ## 启动
 
@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-运行 `npm run build:pages` 会将 GitHub Pages 使用的静态文件生成到仓库根目录的 `world/`。发布时一并提交源码和该目录。
+运行 `npm run build:pages` 会更新仓库根目录的 `index.html` 和 `world/` 中的资源。旧地址 `/world/` 会转到首页。发布时一并提交源码和这些构建产物。
 
 ## 体验
 
