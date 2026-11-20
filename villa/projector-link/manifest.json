@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Galok 海景房投影",
+  "version": "1.0.0",
+  "description": "在 Galok的世界的 ShareAll 播放器内启用幕布全屏与双音箱空间音频。",
+  "content_scripts": [{
+    "matches": ["https://pgxcg.qzz.io/*"],
+    "all_frames": true,
+    "world": "MAIN",
+    "run_at": "document_start",
+    "js": ["room-audio.js","shareall.js"]
+  }]
+}

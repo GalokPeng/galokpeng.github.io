@@ -2,6 +2,8 @@
 
 一个漂浮在真实海水之上的个人站点中转站，纯静态（HTML / CSS / JS，无构建步骤），开箱即用于 GitHub Pages。
 
+海岛上的第一人称海景房设有独立入口。[进入 Galok的世界](https://galok.cn/world/) · [开发说明](villa/README.md)
+
 ## 特性
 
 - 🌊 **真实海水**：Canvas 多层正弦波浪 + 水面高光闪烁 + 日月倒影光带 + 碎光点

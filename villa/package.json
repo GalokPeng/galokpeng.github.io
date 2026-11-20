@@ -1,0 +1,19 @@
+{
+  "name": "galok-island-villa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4176 --strictPort",
+    "build": "vite build --base=./",
+    "build:pages": "vite build --base=./ --outDir ../world --emptyOutDir"
+  },
+  "dependencies": {
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "gltfpack": "1.3.0",
+    "playwright-core": "^1.58.2",
+    "vite": "7.3.8"
+  }
+}

@@ -1,0 +1,7 @@
+Somali Cat Animated ver 1.2 by DreamNoms
+https://sketchfab.com/DreamNoms
+https://sketchfab.com/3d-models/somali-cat-animated-ver-12-e185c3fd92b64c32b4515a32b29252fc
+Creative Commons Attribution 4.0 International
+https://creativecommons.org/licenses/by/4.0/
+
+The villa version removes the display plinth, adds fine hair detail and warmer brown tones to the coat, adjusts the eye and fur materials for room lighting, compresses the geometry and texture, and resamples the original animation clips. The application blends these clips and layers feeding and drinking movements onto the neck and head.

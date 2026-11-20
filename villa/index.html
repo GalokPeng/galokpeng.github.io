@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#35372d">
+    <title>Galok的世界</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./src/style.css">
+  </head>
+  <body>
+    <main id="view" aria-label="Galok的世界 · 第一人称漫游"></main>
+    <div id="hud">
+      <div class="place"><span class="mark">⌂</span><div><strong>Galok的世界</strong><small><span id="location">客厅</span> · 上海 <time id="sky-clock"></time></small></div></div>
+      <div class="settings">
+        <select id="sky-time" aria-label="海岛时间"><option value="real">真实时间</option><option value="sunrise">日出</option><option value="day">白天</option><option value="sunset">日落</option><option value="night">星夜</option><option value="moonrise">月升</option><option value="moonset">月落</option><option value="100">100×</option><option value="1000">1000×</option><option value="10000">10000×</option></select>
+        <select id="wind" aria-label="海风"><option value="auto">海风 · 自动</option><option value="off">无风</option><option value="low">微风</option><option value="high">强风</option></select>
+        <select id="weather" aria-label="天气"><option value="auto">天气 · 自动</option><option value="clear">晴天</option><option value="rain">风雨</option><option value="storm">雷雨</option></select>
+        <button id="help" aria-label="操作说明" aria-expanded="false">?</button>
+      </div>
+    </div>
+    <div id="reticle" hidden></div>
+    <button id="prompt" hidden></button>
+    <div id="screen-tools" hidden><strong id="device-name"></strong><span id="film-controls" hidden><button id="screen-fill">幕内全屏</button> <button id="choose-film">本机影片</button> <button id="screen-web">网页</button><input id="film-file" type="file" accept="video/*" hidden><small id="media-status" role="status"></small></span><button id="leave-screen">返回漫游</button><button id="power-off">关机</button><a id="open-site" target="_blank" rel="noopener noreferrer">独立打开 ↗</a></div>
+    <dialog id="reader"><select aria-label="书架目录"></select><button data-close aria-label="合上书">合上书 ×</button><h2></h2><article></article><nav><button data-prev>上一页</button><output></output><button data-next>下一页</button></nav></dialog>
+    <button id="stand" hidden>起身</button>
+    <aside id="guide" hidden>
+      <strong>漫游操作</strong>
+      <p>W A S D 或方向键行走，拖动环顾。单击空处可锁定鼠标，Esc 释放。</p>
+      <p>走近物品，点击或按 E。窗帘两端有黄铜拉绳，房门旁和厨房台面上方有灯钮。餐桌后面的门通往书房。</p>
+      <p>客厅隔墙边可以给猫加餐。卧室床旁的移门通往卫生间，门框旁有黄铜按钮。猫砂盆会在猫离开后自动清理。</p>
+      <p>露台门右侧墙上的按钮控制室内卷帘。帘布从拱窗上方垂到地面。收起卷帘后，对准黄铜把手可开关露台门。</p>
+      <p>对准客厅沙发、书房座椅、露台长椅或秋千按 E 坐下，再按 E 起身。</p>
+      <p>沿露台台阶走到码头，在船旁按 E 登船。W / S 前进或倒车，A / D 转向，松开油门减速。回到泊位后按 E 或点击「靠岸下船」。触屏用方向盘驾驶。</p>
+      <p>触屏使用左下方向盘移动，在画面右侧拖动环顾。</p>
+      <label>闪电 <select id="lightning"><option value="follow">跟随天气</option><option value="auto">原岛自动</option><option value="on">立即闪电</option><option value="off">关闭</option></select></label>
+      <p><small><a href="./assets/somali-cat/CREDITS.txt" target="_blank" rel="noopener">索马里猫模型 · DreamNoms · CC BY 4.0</a></small></p>
+    </aside>
+    <div id="hint">WASD 移动　·　拖动环顾　·　E 互动</div>
+    <div id="joystick" aria-label="移动方向盘"><i></i></div>
+    <p id="loading" role="status">正在布置海景房…</p>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
