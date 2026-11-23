@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8f4">
+  <meta name="description" content="{{ page.description | default: page.title | escape }}" data-en="{{ page.description_en | default: page.description | default: page.title | escape }}">
+  <title data-en="{{ page.title_en | default: page.title | escape }} · Galok">{{ page.title | escape }} · Galok</title>
+  <link rel="canonical" href="{{ page.url | replace: 'index.html', '' | absolute_url }}">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="icon" href="/home/brand/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/home/brand/apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="/home/index.css?v=atlas-1">
+  {% if page.section == 'skills' %}
+  <link rel="stylesheet" href="/skills/library.css?v=atlas-1">
+  <script type="module" src="/skills/library.js?v=library-3"></script>
+  {% else %}
+  <script type="module" src="/home/language.js"></script>
+  {% endif %}
+  {% if page.section == 'articles' %}<link rel="stylesheet" href="/articles/reading.css?v=atlas-1">{% endif %}
+  {% if page.section == 'sites' %}
+  <meta name="google-site-verification" content="wwYQkhI3vHjQzLbLIv8aZAOjxPyctIldvmvCiEcLGao">
+  <script>
+    function openSkillsBookmark() {
+      if (location.hash === '#skills') location.replace('/skills/' + location.search);
+    }
+    openSkillsBookmark();
+    addEventListener('hashchange', openSkillsBookmark);
+  </script>
+  {% endif %}
+</head>
+<body id="top"{% if page.skill_collection %} data-collection="{{ page.skill_collection }}"{% endif %}>
+  <a class="skip" href="#main" data-en="Skip to content">跳到正文</a>
+  <header class="masthead">
+    <div class="wrap headline">
+      <a class="wordmark" href="/" data-site-link aria-label="Galok 首页" data-en-label="Galok home"><img src="/home/brand/galok.svg" width="33" height="33" alt="">Galok<span>.</span></a>
+      <nav aria-label="主导航" data-en-label="Main navigation">
+        <a href="/#sites" data-site-link {% if page.section == 'sites' %}aria-current="page"{% endif %} data-en="Sites">站点</a>
+        <a href="/articles/" data-site-link {% if page.section == 'articles' %}aria-current="true"{% endif %} data-en="Articles">文章</a>
+        <a href="/skills/" data-site-link {% if page.section == 'skills' %}aria-current="true"{% endif %}>Skills</a>
+      </nav>
+      <div class="utilities">
+        <a href="https://github.com/GalokPeng" lang="en">GitHub</a>
+        <button id="language" type="button" lang="en" aria-label="Switch to English" hidden>EN</button>
+      </div>
+    </div>
+  </header>
+  <main id="main" class="wrap" tabindex="-1">{{ content }}</main>
+  <footer class="wrap footer">
+    <a href="/" data-site-link lang="en">Galok’s Index</a>
+    <a href="#top" data-en="Back to top">回到顶部</a>
+  </footer>
+</body>
+</html>

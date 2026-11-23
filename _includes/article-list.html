@@ -1,0 +1,14 @@
+{% assign heading = include.heading | default: 'h2' %}
+<ul class="article-list">
+  {% for post in site.posts limit:include.limit %}
+  <li{% if include.covers and post.cover %} class="record-illustrated"{% endif %}><a href="{{ post.url | relative_url }}" data-site-link>
+    {% if include.covers and post.cover %}<img class="record-cover" src="{{ post.cover | relative_url | escape }}" width="900" height="425" alt="" decoding="async">{% endif %}
+    <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: '%Y.%m.%d' }}</time>
+    <div class="article-caption">
+      <{{ heading }} class="record-title"{% if post.title_en %} data-en="{{ post.title_en | escape }}"{% endif %}>{{ post.title | escape }}</{{ heading }}>
+      {% if post.description %}<p{% if post.description_en %} data-en="{{ post.description_en | escape }}"{% endif %}>{{ post.description | escape }}</p>{% endif %}
+    </div>
+    <span class="read-arrow" aria-hidden="true">↗</span>
+  </a></li>
+  {% endfor %}
+</ul>

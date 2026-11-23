@@ -4,15 +4,6 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1.25rem 2rem;
-  padding: clamp(2rem, 4.6vw, 3.9rem) 0 clamp(1.5rem, 2.8vw, 2.25rem);
-}
-
-.library-heading h1 {
-  font-size: clamp(2.75rem, 5.2vw, 4.25rem);
-  font-weight: 640;
-  letter-spacing: -.055em;
-  line-height: 1.06;
-  white-space: normal;
 }
 
 .collection-tabs {
@@ -20,26 +11,30 @@
   align-items: stretch;
   max-width: 100%;
   padding: 4px;
-  background: #e8ece9;
+  background: var(--wash);
   border-radius: 999px;
 }
 
 .collection-tabs a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: .5rem 1rem;
   border-radius: inherit;
   font-size: .92rem;
   line-height: 1.4;
   font-weight: 600;
-  color: #48564f;
+  color: var(--muted);
   text-align: center;
 }
 
 .collection-tabs a[aria-current="page"] {
   color: #fff;
-  background: #213b34;
+  background: var(--ink);
 }
 
-.collection-tabs a:not([aria-current]):hover { color: var(--ink); background: #dce3df; }
+.collection-tabs a:not([aria-current]):hover { color: var(--blue); background: #dce6eb; }
 
 .catalog-grid {
   display: grid;
@@ -57,7 +52,7 @@
   display: flex;
   flex-direction: column;
   background: #fff;
-  border: 1px solid #d5dcd6;
+  border: 1px solid var(--edge);
   border-radius: 14px;
   overflow-wrap: anywhere;
 }
@@ -123,7 +118,7 @@
 }
 
 .card-actions a {
-  min-height: 42px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
 }
@@ -136,6 +131,8 @@
 }
 
 .card-actions .primary-action:hover { background: #17389a; }
+.card-actions .primary-action:not([download]) { background: var(--wash); color: var(--blue); }
+.card-actions .primary-action:not([download]):hover { background: #d9e4ed; }
 
 #skill-status { color: var(--muted); }
 
@@ -147,6 +144,11 @@
   }
 
   :is(.skill-card:only-child, [data-collection="referenced"] .skill-card:first-child) .skill-cover { height: 100%; border-radius: 13px 0 0 13px; }
+}
+
+@media (min-width: 1100px) {
+  [data-collection="referenced"] .catalog-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  [data-collection="referenced"] .card-body { padding: 1.5rem; }
 }
 
 @media (max-width: 710px) {

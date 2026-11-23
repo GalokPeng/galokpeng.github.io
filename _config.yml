@@ -1,0 +1,17 @@
+url: https://galok.cn
+timezone: Asia/Shanghai
+permalink: /articles/:title/
+markdown: kramdown
+kramdown:
+  input: GFM
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: reading
+      section: articles
+      language: zh-CN
+exclude:
+  - villa/node_modules
+  - villa/dist

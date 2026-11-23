@@ -1,0 +1,15 @@
+---
+layout: index-shell
+---
+<header class="library-heading page-heading">
+  <h1 data-en="Skill library">技能库</h1>
+  <nav class="collection-tabs" aria-label="Skill 分类" data-en-label="Skill collections">
+    <a href="/skills/" data-site-link {% if page.skill_collection == 'personal' %}aria-current="page"{% endif %} data-en="Personal skills">个人 Skill</a>
+    <a href="/skills/referenced/" data-site-link {% if page.skill_collection == 'referenced' %}aria-current="page"{% endif %} data-en="Referenced skills">引用 Skill</a>
+  </nav>
+</header>
+<section id="catalog" aria-label="{{ page.title | escape }}" data-en-label="{{ page.title_en | escape }}">
+  <p id="skill-status" role="status">正在读取技能目录…</p>
+  <ul class="catalog-grid" hidden></ul>
+  <noscript><p>请到 <a href="https://github.com/GalokPeng/galokpeng.github.io/tree/main/skills">GitHub</a> 查看和下载文件。 <span lang="en">Browse the repository for downloads.</span></p></noscript>
+</section>

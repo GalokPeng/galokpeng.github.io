@@ -1,0 +1,17 @@
+---
+layout: index-shell
+---
+<header class="reading-head">
+  <a class="back-link" href="/articles/" data-site-link><span aria-hidden="true">←</span> <span data-en="All articles">全部文章</span></a>
+  <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: '%Y.%m.%d' }}</time>
+  <h1{% if page.title_en %} data-en="{{ page.title_en | escape }}"{% endif %}>{{ page.title | escape }}</h1>
+</header>
+<div class="reading-layout">
+  <aside class="contents" hidden>
+    <details><summary data-en="Contents">本文目录</summary>
+      <nav aria-label="文章章节" data-en-label="Article sections"><ol></ol></nav>
+    </details>
+  </aside>
+  <article class="prose" lang="{{ page.language | default: 'zh-CN' | escape }}">{{ content }}</article>
+</div>
+<script type="module" src="/articles/reader.js"></script>
