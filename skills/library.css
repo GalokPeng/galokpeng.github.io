@@ -1,0 +1,23 @@
+.library-heading { padding: clamp(2.5rem, 6vw, 5rem) 0 clamp(2rem, 4vw, 3.5rem); }
+.collection-tabs { display: flex; gap: clamp(1.25rem, 3vw, 2.5rem); border-bottom: 1px solid var(--rule); }
+.collection-tabs a { padding: .25rem .2rem .8rem; border-bottom: 3px solid transparent; margin-bottom: -1px; font-weight: 600; color: var(--muted); }
+.collection-tabs a[aria-current="page"] { border-bottom-color: var(--blue); color: var(--blue); }
+.collection-tabs a:hover, .headline nav a[aria-current] { color: var(--blue); }
+#catalog { padding: 1.5rem 0 0; }
+#skill-status { color: var(--muted); }
+#skill-status a, #catalog noscript a { text-decoration: underline; }
+#skill-list { list-style: none; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.25rem; padding: 0; margin: 0; }
+#skill-list[hidden] { display: none; }
+.skill-card { display: flex; flex-direction: column; align-items: flex-start; border: 1px solid var(--edge); border-radius: 10px; padding: clamp(1.2rem, 2.5vw, 2rem); background: #fff; overflow-wrap: anywhere; }
+.file-label { display: flex; gap: .75rem; align-items: center; margin-bottom: 1.4rem; color: var(--muted); }
+.file-label code { font: .83rem/1.35 ui-monospace, Consolas, monospace; }
+.file-label i { display: block; position: relative; width: 32px; height: 35px; border: 1.5px solid var(--blue); border-radius: 4px; background: #e6ebfc; box-shadow: 3px -3px 0 -1px white, 3px -3px 0 0 var(--blue); }
+.file-label i::before { content: ''; position: absolute; top: 11px; left: 6px; width: 16px; height: 2px; background: var(--blue); box-shadow: 0 6px var(--blue); }
+.skill-card h2 { font-size: clamp(1.35rem,2.5vw,1.85rem); line-height: 1.28; }
+.summary { color: var(--muted); margin: .75rem 0 1.25rem; line-height: 1.65; }
+.source { display: flex; align-items: baseline; flex-wrap: wrap; gap: .4rem .8rem; font-size: .88rem; margin-bottom: 1.3rem; color: var(--muted); }
+.source a, .card-actions a:not(.download) { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.card-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem 1.3rem; border-top: 1px solid var(--rule); width: 100%; padding-top: 1rem; margin-top: auto; font-size: .92rem; }
+.download { padding: .48rem 1rem; font-weight: 600; border-radius: 5px; background: var(--blue); color: #fff; }
+.download:hover { background: #163895; }
+@media (max-width: 680px) { #skill-list { grid-template-columns: 1fr; } }

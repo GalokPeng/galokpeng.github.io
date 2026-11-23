@@ -33,6 +33,13 @@ function applyLanguage() {
   button.lang = localized('en', 'zh-CN');
   button.setAttribute('aria-label', localized('Switch to English', '切换到中文'));
   button.hidden = false;
+  if (supported(new URL(location.href).searchParams.get('lang'))) {
+    for (const link of document.querySelectorAll('a[data-site-link]')) {
+      const target = new URL(link.href);
+      target.searchParams.set('lang', language);
+      link.href = target.href;
+    }
+  }
   document.dispatchEvent(new Event('indexlanguagechange'));
 }
 

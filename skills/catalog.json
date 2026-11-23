@@ -5,7 +5,8 @@
     "description": "把桌面软件做成可在线试用的网页。附带可运行的色卡画板，用来练习窗口拖动、撤销、录屏和 PNG 导出。",
     "descriptionEn": "Turn a desktop app into a hands-on web demo. The included drawing board demonstrates draggable windows, undo, recording and PNG export.",
     "file": "build-browser-desktop.zip",
-    "guide": "build-browser-desktop"
+    "guide": "build-browser-desktop",
+    "collection": "personal"
   },
   {
     "name": "软件产品全链路交付",
@@ -13,6 +14,22 @@
     "description": "按产品类型规划开发、测试、打包和上线，包含发布清单、交接模板，以及校验产物和线上地址的 Python 工具。",
     "descriptionEn": "Plan development, testing, packaging and release for your product. Includes release checklists, handoff templates and Python tools for verifying builds and live endpoints.",
     "file": "ship-software-product.zip",
-    "guide": "ship-software-product"
+    "guide": "ship-software-product",
+    "collection": "personal"
+  },
+  {
+    "name": "Skill Creator",
+    "nameEn": "Skill Creator",
+    "description": "OpenAI 的 Codex Skill 编写指南。用随附的 Python 工具创建 Skill 目录、生成界面信息，并检查说明文件的格式。",
+    "descriptionEn": "OpenAI’s guide to writing Codex skills. The included Python tools scaffold a skill, generate UI metadata and validate the skill definition.",
+    "collection": "referenced",
+    "file": "skill-creator.zip",
+    "source": {
+      "repository": "openai/skills",
+      "revision": "49f948faa9258a0c61caceaf225e179651397431",
+      "path": "skills/.system/skill-creator",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE.txt"
+    }
   }
 ]
