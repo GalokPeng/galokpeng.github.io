@@ -1,0 +1,4 @@
+interface:
+  display_name: "软件产品全链路交付"
+  short_description: "按软件类型组织需求、实现、验证、打包、发布、官网、更新与故障恢复流程"
+  default_prompt: "请使用 $ship-software-product 检查当前项目与授权范围，按产品类型完成开发、验证和交付，并逐项提供发布与上线证据。"

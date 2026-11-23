@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "product_id": "sample-product",
+  "version": null,
+  "channel": "stable",
+  "components": {
+    "app": {"repository": null, "revision": {"type": "git", "value": null}}
+  },
+  "requirements": [
+    {"id": "tests", "components": ["app"], "artifact_ids": [], "allow_na": false},
+    {"id": "package", "components": ["app"], "artifact_ids": ["main-artifact"], "allow_na": false},
+    {"id": "release", "components": ["app"], "artifact_ids": ["main-artifact"], "allow_na": false}
+  ],
+  "artifacts": [
+    {"id": "main-artifact", "component": "app", "path": null, "size_bytes": null, "sha256": null}
+  ],
+  "gates": [
+    {"id": "tests", "status": "pending", "reason": "尚未记录实际检查结果"},
+    {"id": "package", "status": "pending", "reason": "尚未验证最终制品"},
+    {"id": "release", "status": "pending", "reason": "尚未发布并核对公开状态"}
+  ]
+}

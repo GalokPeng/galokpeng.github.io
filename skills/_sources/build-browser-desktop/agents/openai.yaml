@@ -1,0 +1,4 @@
+interface:
+  display_name: "网页交互桌面"
+  short_description: "把桌面应用的真实操作迁移到浏览器，验收窗口、指针、媒体和导出"
+  default_prompt: "用 $build-browser-desktop 对照我的桌面应用，为官网制作可操作的网页体验，并验证实际操作结果。"

@@ -1,0 +1,24 @@
+{
+  "checks": [
+    {
+      "id": "production-page",
+      "url": "https://product.example.test/",
+      "method": "GET",
+      "expect_status": 200,
+      "contains": ["本次实际发布标识或唯一内容"],
+      "max_bytes": 1048576,
+      "timeout_seconds": 20
+    },
+    {
+      "id": "download-route",
+      "url": "https://product.example.test/download",
+      "method": "GET",
+      "expect_status": 302,
+      "follow_redirects": false,
+      "expect_location_prefix": "https://downloads.example.test/releases/",
+      "location_contains": ["本次实际版本路径"],
+      "max_bytes": 65536,
+      "timeout_seconds": 20
+    }
+  ]
+}

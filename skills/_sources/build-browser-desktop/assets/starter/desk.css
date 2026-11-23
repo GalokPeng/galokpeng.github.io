@@ -1,0 +1,40 @@
+:root {font:14px/1.45 system-ui,"Microsoft YaHei UI",sans-serif;color:#233240;color-scheme:light}
+* {box-sizing:border-box}
+[hidden] {display:none!important}
+html,body,#desktop {height:100%;width:100%;margin:0;overflow:hidden}
+#desktop {position:relative;isolation:isolate;background:radial-gradient(ellipse at 28% 4%,#94bfb8 0,transparent 47%),linear-gradient(146deg,#455975 0 46%,#59788a 46% 54%,#a7beba 54% 56%,#425b6b 56% 78%,#263647 78%)}
+button,select {font:inherit;color:inherit}
+button,select,a {touch-action:manipulation}
+button {cursor:pointer;border:1px solid #bdc7c6;background:#fff;border-radius:6px;padding:5px 9px}
+button:hover {background:#ebf4ef}
+button:disabled {cursor:default;opacity:.48}
+:focus-visible {outline:2px solid #146e69;outline-offset:2px}
+.app-icon {position:relative;display:inline-block;width:23px;height:23px;flex:none;border-radius:6px;background:linear-gradient(123deg,#f5da9e 0 33%,#a6d7c5 33% 66%,#a9c2e3 66%);box-shadow:inset 0 0 0 1px #22312435}
+#shortcut {position:absolute;top:10px;left:6px;display:grid;justify-items:center;gap:4px;background:transparent;color:white;border:0;text-shadow:0 1px 3px #16232c;font-size:12px}
+#shortcut .app-icon {width:32px;height:32px}
+#window {position:absolute;display:flex;flex-direction:column;left:13%;top:5%;width:min(76%,680px);max-height:calc(100% - 68px);overflow:hidden;border:1px solid #bec8c6;border-radius:10px;background:#fcfcf8;box-shadow:0 12px 36px #15273355}
+.titlebar {display:flex;align-items:center;justify-content:space-between;background:#ecf1ed;border-bottom:1px solid #cbd3ce}
+#handle {flex:1;display:flex;align-items:center;gap:8px;height:35px;padding:0 12px;cursor:grab;touch-action:none;user-select:none}
+#handle .app-icon {width:18px;height:18px;border-radius:4px}
+#minimize {border:0;background:transparent;margin:0 5px;min-height:30px}
+.workspace {padding:12px;overflow:auto;overscroll-behavior:contain}
+.tools,.palette,.exports {display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.tools button[aria-pressed=true],#apply {background:#27574c;color:#fff;border-color:#27574c}
+#board {display:block;width:100%;height:auto;max-width:640px;margin:8px auto;touch-action:none;cursor:crosshair;background:#fff2d6}
+.surface {position:relative;width:100%;max-width:640px;margin:8px auto;line-height:0}
+.surface #board {margin:0}
+.keyboard-tip {position:absolute;pointer-events:none;width:11px;height:11px;border:1px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #243b42;transform:translate(-50%,-50%)}
+#swatch {width:19px;height:19px;border-radius:50%;border:1px solid #949e99;background:#fff2d6}
+#color {padding:4px;border:1px solid #bdc7c6;background:#fff;border-radius:5px}
+#review video {display:block;width:100%;max-height:150px;background:#263647}
+#review a {display:inline-block;color:#20594a;padding:5px 0}
+#status {min-height:1.45em;color:#4f615d;margin:3px 0 0;font-size:12px}
+nav {position:absolute;bottom:7px;left:50%;transform:translateX(-50%)}
+#task {display:flex;align-items:center;gap:6px;background:#233440;color:#f4f5ef;border-color:#8499a2}
+#task .app-icon {width:18px;height:18px}
+@media(max-width:580px) {
+  #window {left:3%;top:11%;width:94%;max-height:calc(89% - 47px)}
+  .workspace {padding:8px}
+  #shortcut {top:2px;display:flex}
+}
+@media(prefers-reduced-motion:no-preference) {button {transition:background-color .12s linear}}

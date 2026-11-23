@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>色卡画板桌面</title>
+  <link rel="stylesheet" href="./desk.css">
+  <script type="module" src="./desktop.mjs"></script>
+</head>
+<body>
+  <main id="desktop" aria-label="虚拟桌面">
+    <button id="shortcut" title="双击打开画板，或按 Enter"><i class="app-icon" aria-hidden="true"></i><span>色卡画板</span></button>
+    <section id="window" aria-labelledby="window-title">
+      <header class="titlebar">
+        <div id="handle" tabindex="0" title="拖动窗口，或按方向键移动"><i class="app-icon" aria-hidden="true"></i><b id="window-title">色卡画板</b></div>
+        <button id="minimize" aria-label="最小化" title="最小化">—</button>
+      </header>
+      <div class="workspace">
+        <div class="tools" role="group" aria-label="标注工具">
+          <button id="pen" aria-pressed="true">画笔</button><button id="eraser" aria-pressed="false">橡皮</button>
+          <button id="undo" disabled>撤销</button><button id="redo" disabled>重做</button>
+        </div>
+        <canvas id="board" width="640" height="360" tabindex="0" aria-label="绘图区，指针可绘制；方向键移动笔尖，空格落点">当前浏览器无法显示画板。</canvas>
+        <div class="palette" role="group" aria-label="画布底色">
+          <span>底色预览</span><span id="swatch" aria-hidden="true"></span>
+          <select id="color" aria-label="选择底色">
+            <option value="#fff2d6">麦芽白</option><option value="#c7e9dc">薄荷绿</option><option value="#cbd9f2">雾蓝</option>
+          </select>
+          <button id="apply">应用底色</button>
+        </div>
+        <div class="exports">
+          <button id="save">导出 PNG</button>
+          <button id="record">录制画板 · 6 秒</button>
+          <button id="stop" hidden>结束录制</button>
+        </div>
+        <div id="review" hidden><video id="playback" controls playsinline muted aria-label="录制回放"></video><a id="download-clip">保存录制文件</a></div>
+        <p id="status" role="status" aria-live="polite">画布 640 × 360</p>
+      </div>
+    </section>
+    <nav aria-label="虚拟任务栏"><button id="task" aria-controls="window" aria-expanded="true"><i class="app-icon" aria-hidden="true"></i>画板</button></nav>
+  </main>
+</body>
+</html>
