@@ -1,5 +1,6 @@
 """Prepare the verified Poly Haven downloads for the villa. Requires Pillow and npm ci."""
 from pathlib import Path
+import json
 import shutil
 import subprocess
 
@@ -29,13 +30,20 @@ for file in source.rglob("*"):
         output.replace(dest)
     elif file.suffix == ".bin" and file.parent.name in ratios:
         continue
-    elif file.suffix == ".jpg" and file.parent != source:
-        # Preserve chroma on normal and packed material maps; it contains surface data.
+    elif file.suffix == ".jpg":
         color = file.stem == "color" or "_diff" in file.stem
         with Image.open(file) as image:
-            size = 1024 if color else 768
-            image.thumbnail((size, size), Image.Resampling.LANCZOS)
-            image.save(dest, quality=85 if color else 88,
-                       subsampling=2 if color else 0, optimize=True)
+            if file.parent != source:
+                size = 1024 if color else 768
+                image.thumbnail((size, size), Image.Resampling.LANCZOS)
+            image.save(dest.with_suffix(".webp"), quality=85 if color else 88, method=6)
     else:
         shutil.copyfile(file, dest)
+    if file.suffix == ".gltf":
+        gltf = json.loads(dest.read_text(encoding="utf-8"))
+        for texture in gltf.get("images", []):
+            if texture.get("uri", "").endswith(".jpg"):
+                texture["uri"] = texture["uri"][:-4] + ".webp"
+                if "mimeType" in texture:
+                    texture["mimeType"] = "image/webp"
+        dest.write_text(json.dumps(gltf, separators=(",", ":")), encoding="utf-8")

@@ -13,7 +13,7 @@ export function material(color, roughness=.67, metalness=0) {
 function surface(id, tint, roughness, tiles, normal=.45) {
   const mat=material(tint,roughness);
   for(const [field,file] of [['map','color'],['normalMap','normal']]) {
-    const url=asset(id+'/'+file+'.jpg');
+    const url=asset(id+'/'+file+'.webp');
     let t=surfaceMaps.get(url);
     if(!t){
       t=loader.load(url);t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=4;

@@ -154,7 +154,7 @@ function framedPrint(p,id,x,y,z,w,h,angle){
   box(frame,0,0,0,w+.14,h+.14,.063,M.walnut,.016);
   box(frame,0,0,.024,w+.089,h+.089,.034,M.brass,.009);
   box(frame,0,0,.041,w+.044,h+.044,.017,M.trim);
-  const map=new T.TextureLoader().load(asset('art-'+id+'.jpg'));map.colorSpace=T.SRGBColorSpace;map.anisotropy=4;
+  const map=new T.TextureLoader().load(asset('art-'+id+'.webp'));map.colorSpace=T.SRGBColorSpace;map.anisotropy=4;
   mesh(frame,new T.PlaneGeometry(w,h),new T.MeshStandardMaterial({map,roughness:.94}),0,0,.054);
 }
 

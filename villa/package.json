@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 4176 --strictPort",
     "build": "vite build --base=./",
-    "build:pages": "vite build --base=./ --outDir ../world --emptyOutDir && node tools/publish-home.mjs"
+    "build:pages": "vite build --base=./ --outDir ../world --emptyOutDir"
   },
   "dependencies": {
     "three": "0.187.0"

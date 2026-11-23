@@ -69,17 +69,17 @@
     {
       "mimeType": "image/jpeg",
       "name": "mid_century_lounge_chair_nor_gl",
-      "uri": "textures/mid_century_lounge_chair_nor_gl_1k.jpg"
+      "uri": "textures/mid_century_lounge_chair_nor_gl_1k.webp"
     },
     {
       "mimeType": "image/jpeg",
       "name": "mid_century_lounge_chair_diff",
-      "uri": "textures/mid_century_lounge_chair_diff_1k.jpg"
+      "uri": "textures/mid_century_lounge_chair_diff_1k.webp"
     },
     {
       "mimeType": "image/jpeg",
       "name": "mid_century_lounge_chair_metal-mid_century_lounge_chair_rough",
-      "uri": "textures/mid_century_lounge_chair_arm_1k.jpg"
+      "uri": "textures/mid_century_lounge_chair_arm_1k.webp"
     }
   ],
   "accessors": [

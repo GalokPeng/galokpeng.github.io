@@ -108,22 +108,22 @@
     {
       "mimeType": "image/jpeg",
       "name": "sofa_03_nor_gl",
-      "uri": "textures/sofa_03_nor_gl_1k.jpg"
+      "uri": "textures/sofa_03_nor_gl_1k.webp"
     },
     {
       "mimeType": "image/jpeg",
       "name": "sofa_03_diff.png",
-      "uri": "textures/sofa_03_diff_1k.jpg"
+      "uri": "textures/sofa_03_diff_1k.webp"
     },
     {
       "mimeType": "image/jpeg",
       "name": "sofa_03_rough.png",
-      "uri": "textures/sofa_03_rough_1k.jpg"
+      "uri": "textures/sofa_03_rough_1k.webp"
     },
     {
       "mimeType": "image/jpeg",
       "name": "sofa_03_diff.png-sofa_03_opacity",
-      "uri": "textures/sofa_03_diff_1k.jpg"
+      "uri": "textures/sofa_03_diff_1k.webp"
     }
   ],
   "accessors": [
