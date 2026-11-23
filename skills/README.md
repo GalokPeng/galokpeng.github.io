@@ -8,6 +8,7 @@
 | `name`、`nameEn` | 中、英文名称。 |
 | `description`、`descriptionEn` | 中、英文用途简介。 |
 | `file` | 本目录下保留原件的 `.zip` 或 `.skill` 文件名。 |
+| `cover` | 可选封面，填写 `covers/` 内的 WebP 文件名（小写字母、数字、短横线）。推荐画幅 12∶5，省略时展示文字卡片。 |
 | `guide` | 个人 Skill 可填写解压后的目录名。说明位于 `_sources/<guide>/SKILL.md`。 |
 | `source` | 引用 Skill 的 GitHub 来源，填写 `repository`、`revision`（完整提交 SHA）、`path`（仓库内 Skill 目录）、`license` 和 `licenseFile`（相对该目录）。 |
 

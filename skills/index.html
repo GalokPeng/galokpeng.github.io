@@ -9,9 +9,9 @@
   <link rel="icon" href="/favicon.ico">
   <link rel="icon" href="/home/brand/favicon.svg" type="image/svg+xml" sizes="any">
   <link rel="apple-touch-icon" href="/home/brand/apple-touch-icon.png" sizes="180x180">
-  <link rel="stylesheet" href="/home/index.css">
-  <link rel="stylesheet" href="/skills/library.css">
-  <script type="module" src="/skills/library.js"></script>
+  <link rel="stylesheet" href="/home/index.css?v=library-2">
+  <link rel="stylesheet" href="/skills/library.css?v=library-2">
+  <script type="module" src="/skills/library.js?v=library-2"></script>
 </head>
 <body id="top" data-collection="personal">
   <a class="skip" href="#catalog" data-en="Skip to skills">跳到技能卡片</a>
@@ -20,14 +20,16 @@
     <nav aria-label="主导航" data-en-label="Main navigation"><a href="/#sites" data-site-link data-en="Sites">站点</a><a href="/skills/" data-site-link aria-current="true">Skills</a><a class="git" href="https://github.com/GalokPeng" lang="en">GitHub</a><button id="language" type="button" lang="en" aria-label="Switch to English" hidden>EN</button></nav>
   </div></header>
   <main class="wrap">
-    <header class="library-heading"><h1 lang="en">Skill <em>Library.</em></h1></header>
-    <nav class="collection-tabs" aria-label="Skill 分类" data-en-label="Skill collections">
-      <a href="/skills/" data-site-link aria-current="page" data-en="Personal skills">个人 Skill</a>
-      <a href="/skills/referenced/" data-site-link data-en="Referenced skills">引用 Skill</a>
-    </nav>
+    <header class="library-heading">
+      <h1 data-en="Skill library">技能库</h1>
+      <nav class="collection-tabs" aria-label="Skill 分类" data-en-label="Skill collections">
+        <a href="/skills/" data-site-link aria-current="page" data-en="Personal skills">个人 Skill</a>
+        <a href="/skills/referenced/" data-site-link data-en="Referenced skills">引用 Skill</a>
+      </nav>
+    </header>
     <section id="catalog" aria-label="个人 Skill" data-en-label="Personal skills">
       <p id="skill-status" role="status">正在读取技能目录…</p>
-      <ul id="skill-list" hidden></ul>
+      <ul class="catalog-grid" hidden></ul>
       <noscript><p>请到 <a href="https://github.com/GalokPeng/galokpeng.github.io/tree/main/skills">GitHub</a> 查看和下载文件。 <span lang="en">Browse the repository for downloads.</span></p></noscript>
     </section>
   </main>

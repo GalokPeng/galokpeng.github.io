@@ -1,7 +1,7 @@
 import {localized} from '/home/language.js';
 
 const collection = document.body.dataset.collection;
-const list = document.getElementById('skill-list');
+const list = document.querySelector('.catalog-grid');
 const status = document.getElementById('skill-status');
 let entries = [];
 let state = 'loading';
@@ -22,12 +22,17 @@ function link(text, href, className) {
 function card(item) {
   const row = element('li', '', 'skill-card');
   const name = localized(item.name, item.nameEn);
-  const slug = item.file.replace(/\.(zip|skill)$/i, '');
-  const file = element('div', '', 'file-label');
-  const icon = element('i');
-  icon.setAttribute('aria-hidden', 'true');
-  file.append(icon, element('code', slug));
-  row.append(file, element('h2', name), element('p', localized(item.description, item.descriptionEn), 'summary'));
+  if (typeof item.cover === 'string' && /^[a-z0-9-]+\.webp$/.test(item.cover)) {
+    const cover = element('img', '', 'skill-cover');
+    cover.alt = '';
+    cover.width = 1200;
+    cover.height = 500;
+    cover.addEventListener('error', () => cover.remove(), {once: true});
+    cover.src = '/skills/covers/' + item.cover;
+    row.append(cover);
+  }
+  const body = element('div', '', 'card-body');
+  body.append(element('h2', name), element('p', localized(item.description, item.descriptionEn), 'summary'));
 
   const actions = element('div', '', 'card-actions');
   const format = item.file.toLowerCase().endsWith('.zip') ? ' ZIP' : '';
@@ -44,7 +49,7 @@ function card(item) {
     const source = element('div', '', 'source');
     source.append(element('span', localized('来源', 'Source')), link('GitHub · ' + repository, project + '/tree/' + snapshot));
     if (license && licenseFile) source.append(link(license, project + '/blob/' + snapshot + '/' + licenseFile));
-    row.append(source);
+    body.append(source);
     guide = link(localized('使用说明（英文）', 'Usage guide'), project + '/blob/' + snapshot + '/SKILL.md');
     guide.hreflang = 'en';
   } else if (item.guide) {
@@ -52,7 +57,8 @@ function card(item) {
     guide.hreflang = 'zh';
   }
   if (guide) actions.append(guide);
-  row.append(actions);
+  body.append(actions);
+  row.append(body);
   return row;
 }
 
@@ -68,7 +74,7 @@ function render() {
 
 async function loadSkills() {
   try {
-    const response = await fetch('/skills/catalog.json');
+    const response = await fetch('/skills/catalog.json', {cache: 'no-cache'});
     if (!response.ok) throw new Error('Catalog unavailable');
     const catalog = await response.json();
     entries = catalog.filter(item => item && (item.collection ?? 'personal') === collection &&

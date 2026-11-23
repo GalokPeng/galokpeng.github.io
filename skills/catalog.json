@@ -5,6 +5,7 @@
     "description": "把桌面软件做成可在线试用的网页。附带可运行的色卡画板，用来练习窗口拖动、撤销、录屏和 PNG 导出。",
     "descriptionEn": "Turn a desktop app into a hands-on web demo. The included drawing board demonstrates draggable windows, undo, recording and PNG export.",
     "file": "build-browser-desktop.zip",
+    "cover": "browser-desktop.webp",
     "guide": "build-browser-desktop",
     "collection": "personal"
   },
@@ -14,6 +15,7 @@
     "description": "按产品类型规划开发、测试、打包和上线，包含发布清单、交接模板，以及校验产物和线上地址的 Python 工具。",
     "descriptionEn": "Plan development, testing, packaging and release for your product. Includes release checklists, handoff templates and Python tools for verifying builds and live endpoints.",
     "file": "ship-software-product.zip",
+    "cover": "software-delivery.webp",
     "guide": "ship-software-product",
     "collection": "personal"
   },
@@ -24,6 +26,7 @@
     "descriptionEn": "OpenAI’s guide to writing Codex skills. The included Python tools scaffold a skill, generate UI metadata and validate the skill definition.",
     "collection": "referenced",
     "file": "skill-creator.zip",
+    "cover": "skill-creator.webp",
     "source": {
       "repository": "openai/skills",
       "revision": "49f948faa9258a0c61caceaf225e179651397431",
