@@ -11,7 +11,7 @@ a:focus-visible{outline:3px solid var(--blue);outline-offset:4px}
 .headline,.wordmark,.headline nav,.section-head,.browser-bar,.footer{display:flex;align-items:center}
 .headline{height:70px;justify-content:space-between}
 .wordmark{font-size:1.45rem;font-weight:700;letter-spacing:-.07em;gap:9px;line-height:1}.wordmark span{color:var(--blue);margin-left:-9px}
-.wordmark img{border-radius:6px}
+.wordmark img{display:block;flex:none}
 .headline nav{gap:clamp(16px,3vw,38px);font-size:.94rem;font-weight:600}
 .headline nav a:hover,.footer a:hover,.folder-link:hover{text-decoration:underline;text-underline-offset:4px;color:var(--blue)}
 .headline nav .git{border-left:1px solid var(--rule);padding-left:clamp(14px,2.6vw,32px)}

@@ -1,0 +1,15 @@
+{
+  "id": "/",
+  "name": "Galok’s Index",
+  "short_name": "Galok",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f9f6",
+  "theme_color": "#f8f9f6",
+  "icons": [
+    {"src": "/home/brand/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/home/brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/home/brand/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
