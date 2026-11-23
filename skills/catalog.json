@@ -34,5 +34,130 @@
       "license": "Apache-2.0",
       "licenseFile": "LICENSE.txt"
     }
+  },
+  {
+    "name": "文档编辑",
+    "nameEn": "Documents",
+    "description": "起草和修订 Word 文档，添加批注，逐页检查最终排版。",
+    "descriptionEn": "Draft and revise Word documents, add comments and review the layout page by page.",
+    "collection": "referenced",
+    "reference": {
+      "publisher": "OpenAI",
+      "version": "26.1119.11507",
+      "url": "https://help.openai.com/en/articles/20001278-creating-and-editing-documents-spreadsheets-and-presentations-with-chatgpt-work"
+    }
+  },
+  {
+    "name": "PDF 工具",
+    "nameEn": "PDF",
+    "description": "提取 PDF 文本和表格、填写表单，并把页面渲染成图片检查版式。下载包为 Codex 随附版本。",
+    "descriptionEn": "Extract text and tables, fill PDF forms and render pages for a visual check. The ZIP contains the Codex bundled edition.",
+    "collection": "referenced",
+    "file": "pdf.zip",
+    "guide": "pdf",
+    "reference": {
+      "publisher": "OpenAI",
+      "version": "26.1119.11507",
+      "url": "https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/pdf",
+      "label": "GitHub 公开版",
+      "labelEn": "Public GitHub edition",
+      "license": "MIT"
+    }
+  },
+  {
+    "name": "演示文稿",
+    "nameEn": "Presentations",
+    "description": "把材料整理成可编辑的幻灯片，沿用现有模板，检查图表、讲者备注和导出版式。",
+    "descriptionEn": "Turn source material into editable slides, reuse a deck template and review charts, speaker notes and exported layouts.",
+    "collection": "referenced",
+    "file": "presentations.zip",
+    "guide": "presentations",
+    "reference": {
+      "publisher": "OpenAI",
+      "version": "26.1119.11507",
+      "url": "https://help.openai.com/en/articles/20001605-creating-and-collaborating-on-slides-in-chatgpt",
+      "license": "MIT"
+    }
+  },
+  {
+    "name": "电子表格",
+    "nameEn": "Spreadsheets",
+    "description": "用数据创建或更新工作簿，设置公式、图表和格式，导出 Excel 文件或交付到 Google 表格。",
+    "descriptionEn": "Build or update workbooks with formulas, charts and formatting for Excel files or Google Sheets.",
+    "collection": "referenced",
+    "file": "spreadsheets.zip",
+    "guide": "spreadsheets",
+    "reference": {
+      "publisher": "OpenAI",
+      "version": "26.1119.11507",
+      "url": "https://help.openai.com/en/articles/20001278-creating-and-editing-documents-spreadsheets-and-presentations-with-chatgpt-work",
+      "license": "MIT"
+    }
+  },
+  {
+    "name": "Excel 实时编辑",
+    "nameEn": "Excel Live Control",
+    "description": "通过 Excel 加载项连接已打开的工作簿，直接读取或修改单元格、公式和图表。",
+    "descriptionEn": "Connect to an open workbook through the Excel add-in to inspect and update cells, formulas and charts.",
+    "collection": "referenced",
+    "file": "excel-live-control.zip",
+    "guide": "excel-live-control",
+    "reference": {
+      "publisher": "OpenAI",
+      "version": "26.1119.11507",
+      "url": "https://help.openai.com/en/articles/20001063-chatgpt-for-excel-and-google-sheets",
+      "license": "MIT"
+    }
+  },
+  {
+    "name": "图像生成",
+    "nameEn": "ImageGen",
+    "description": "根据文字或参考图生成、编辑位图，制作产品图、插画和透明背景素材。",
+    "descriptionEn": "Generate and edit images from a prompt or reference, including product shots, illustrations and transparent cutouts.",
+    "collection": "referenced",
+    "file": "imagegen.zip",
+    "source": {
+      "repository": "openai/codex",
+      "revision": "a1604a8c0554c09c1be45e5a121bb1889b4d9a50",
+      "path": "codex-rs/skills/src/assets/samples/imagegen",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE.txt"
+    }
+  },
+  {
+    "name": "交互可视化",
+    "nameEn": "Visualize",
+    "description": "在对话中用交互图表、地图和模拟解释数据，调整参数即可比较结果。",
+    "descriptionEn": "Explore data in a conversation with interactive charts, maps and simulations that respond to changes in inputs.",
+    "collection": "referenced",
+    "reference": {
+      "publisher": "OpenAI",
+      "version": "1.0.109",
+      "url": "https://learn.chatgpt.com/docs/visualizations"
+    }
+  },
+  {
+    "name": "模板创建",
+    "nameEn": "Template Creator",
+    "description": "从参考文档、工作簿或幻灯片提取可复用的模板，让后续文件沿用约定的格式与布局。",
+    "descriptionEn": "Turn a reference document, workbook or slide deck into a reusable template for future files with the same format and layout.",
+    "collection": "referenced",
+    "reference": {
+      "publisher": "OpenAI",
+      "version": "26.1119.11507",
+      "url": "https://help.openai.com/en/articles/20001278-creating-and-editing-documents-spreadsheets-and-presentations-with-chatgpt-work"
+    }
+  },
+  {
+    "name": "Windows 桌面操作",
+    "nameEn": "Computer Use",
+    "description": "通过 Codex 操作 Windows 应用界面，读取窗口内容，在获准的应用中完成点击和输入。",
+    "descriptionEn": "Use Codex to inspect Windows application windows, click controls and enter text in the apps you allow.",
+    "collection": "referenced",
+    "reference": {
+      "publisher": "OpenAI",
+      "version": "26.1111.21308",
+      "url": "https://help.openai.com/en/articles/20001510-manage-browser-and-computer-use-in-your-enterprise-workspace"
+    }
   }
 ]

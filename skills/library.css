@@ -103,13 +103,13 @@
   font-size: .855rem;
 }
 
-.source a, .card-actions a:not(.download), #skill-status a, #catalog noscript a {
+.source a, .card-actions a:not(.primary-action), #skill-status a, #catalog noscript a {
   text-decoration: underline;
   text-underline-offset: .23em;
   text-decoration-color: #9ca9a3;
 }
 
-.source a:hover, .card-actions a:not(.download):hover { color: var(--blue); text-decoration-color: currentColor; }
+.source a:hover, .card-actions a:not(.primary-action):hover { color: var(--blue); text-decoration-color: currentColor; }
 
 .card-actions {
   display: flex;
@@ -128,27 +128,25 @@
   align-items: center;
 }
 
-.card-actions .download {
+.card-actions .primary-action {
   padding: .6rem 1.15rem;
   border-radius: 999px;
   background: var(--blue);
   color: #fff;
 }
 
-.download:hover { background: #17389a; }
+.card-actions .primary-action:hover { background: #17389a; }
 
 #skill-status { color: var(--muted); }
 
 @media (min-width: 760px) {
-  .skill-card:only-child:has(.skill-cover) {
+  :is(.skill-card:only-child, [data-collection="referenced"] .skill-card:first-child):has(> .skill-cover) {
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: 46% minmax(0, 1fr);
   }
 
-  .skill-card:only-child .skill-cover { height: 100%; border-radius: 13px 0 0 13px; }
-  .skill-card:only-child .card-body { justify-content: center; }
-  .skill-card:only-child .card-actions { margin-top: 0; }
+  :is(.skill-card:only-child, [data-collection="referenced"] .skill-card:first-child) .skill-cover { height: 100%; border-radius: 13px 0 0 13px; }
 }
 
 @media (max-width: 710px) {

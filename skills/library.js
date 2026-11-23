@@ -35,11 +35,13 @@ function card(item) {
   body.append(element('h2', name), element('p', localized(item.description, item.descriptionEn), 'summary'));
 
   const actions = element('div', '', 'card-actions');
-  const format = item.file.toLowerCase().endsWith('.zip') ? ' ZIP' : '';
-  const download = link(localized('下载', 'Download') + format, '/skills/' + encodeURIComponent(item.file), 'download');
-  download.download = item.file;
-  download.setAttribute('aria-label', localized('下载 ', 'Download ') + name);
-  actions.append(download);
+  if (item.file) {
+    const format = item.file.toLowerCase().endsWith('.zip') ? ' ZIP' : '';
+    const download = link(localized('下载', 'Download') + format, '/skills/' + encodeURIComponent(item.file), 'primary-action download');
+    download.download = item.file;
+    download.setAttribute('aria-label', localized('下载 ', 'Download ') + name);
+    actions.append(download);
+  }
 
   let guide;
   if (item.source) {
@@ -52,9 +54,27 @@ function card(item) {
     body.append(source);
     guide = link(localized('使用说明（英文）', 'Usage guide'), project + '/blob/' + snapshot + '/SKILL.md');
     guide.hreflang = 'en';
-  } else if (item.guide) {
-    guide = link(localized('使用说明', 'Guide (中文)'), 'https://github.com/GalokPeng/galokpeng.github.io/blob/main/skills/_sources/' + encodeURIComponent(item.guide) + '/SKILL.md');
-    guide.hreflang = 'zh';
+  } else {
+    if (item.reference) {
+      const {publisher, version, url, license, label, labelEn} = item.reference;
+      const source = element('div', '', 'source');
+      source.append(element('span', publisher + ' · ' + version));
+      if (license) source.append(element('span', license));
+      const official = link(localized(label || '官方说明', labelEn || 'Official guide'), url);
+      if (item.file) source.append(official);
+      else {
+        official.className = 'primary-action';
+        official.setAttribute('aria-label', name + ' · ' + official.textContent);
+        actions.append(official);
+      }
+      body.append(source);
+    }
+    if (item.guide) {
+      const englishGuide = collection === 'referenced';
+      guide = link(englishGuide ? localized('使用说明（英文）', 'Usage guide') : localized('使用说明', 'Guide (中文)'),
+        'https://github.com/GalokPeng/galokpeng.github.io/blob/main/skills/_sources/' + encodeURIComponent(item.guide) + '/SKILL.md');
+      guide.hreflang = englishGuide ? 'en' : 'zh';
+    }
   }
   if (guide) actions.append(guide);
   body.append(actions);
@@ -77,9 +97,12 @@ async function loadSkills() {
     const response = await fetch('/skills/catalog.json', {cache: 'no-cache'});
     if (!response.ok) throw new Error('Catalog unavailable');
     const catalog = await response.json();
-    entries = catalog.filter(item => item && (item.collection ?? 'personal') === collection &&
-      typeof item.name === 'string' && item.name.trim() && typeof item.file === 'string' &&
-      /^[^/\\]+\.(zip|skill)$/i.test(item.file));
+    entries = catalog.filter(item => {
+      if (!item || (item.collection ?? 'personal') !== collection ||
+          typeof item.name !== 'string' || !item.name.trim()) return false;
+      if (typeof item.file === 'string') return /^[^/\\]+\.(zip|skill)$/i.test(item.file);
+      return collection === 'referenced' && item.file == null && /^https:\/\//.test(item.reference?.url);
+    });
     state = 'ready';
   } catch {
     state = 'error';
