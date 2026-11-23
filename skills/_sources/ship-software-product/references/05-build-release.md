@@ -37,6 +37,19 @@ PR/不受信任贡献默认不能获得生产、签名或发布凭据。不要�
 
 ## 发布应满足的事实
 
+使用 GitHub 时，先按契约列出必交文件及目标位置。构建任务完成所有打包后，汇总最终文件并生成 SHA-256 清单；发布任务下载对应 run 的产物，逐个校验并上传到目标 tag 的 Release。独立的 Actions artifact 可以保留供人工交接。最终从 Release 附件列表核对预期文件名、大小与摘要，并从用户下载入口取回关键附件。Actions 下载的 ZIP 和其中的安装文件分别记摘要。[Actions 产物下载](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts) · [Release 附件接口](https://docs.github.com/en/rest/releases/assets)
+
+遇到“Actions 有文件、Release 看不到”，按构建步骤顺序、artifact 名称及下载目录、发布任务的文件清单、公开附件依次定位。用缺少必交附件和附件字节被改动的夹具验证发布会失败。仅构建的运行可按范围跳过分发。已发布版本要补附件时先找原候选的可验证字节，核对原校验清单及项目允许的补发方式；需要用改过的代码重建时使用新的修订版本。
+
+已有 GitHub CLI 时，可用下面两条只读查询定位差异。把大写占位符替换为已核验的仓库、run ID 和 tag。第一条返回该次运行的临时工件及过期状态，第二条返回发行页的附件状态、大小和平台提供的摘要。需要确认具体 attempt 时再核对任务详情和工件来源；缺少远端摘要时按可信清单实际下载复算。
+
+```sh
+gh api --paginate repos/OWNER/REPO/actions/runs/RUN_ID/artifacts --jq '.artifacts[] | {name, expired, digest}'
+gh api repos/OWNER/REPO/releases/tags/TAG --jq '.assets[] | {name, state, size, digest}'
+```
+
+附件较多时，对 Release 使用分页的 `releases/RELEASE_ID/assets` 接口。项目若采用不可变发布，可先在草稿中组装并核对全部附件，再公开并从下载端复核。
+
 正式版本不是 draft、没有误标预发布；tag/registry/build 来源对应候选；所有目标平台的必要制品存在、大小合理、摘要/签名一致；友好文件名或 latest 别名若存在，与版本化文件实际内容相同。上传一半不能算成功。
 
 对代码、运行产物、官网、更新服务分别记录版本/部署状态。公开后发现缺陷先评估影响，必要时停止推广或撤回候选，按 [恢复流程](08-operations.md) 处理，不能偷偷修改公开旧版。

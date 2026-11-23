@@ -1,0 +1,10 @@
+{
+  "name": "ExampleStudio.SampleApp",
+  "publisher": "CN=Example Publisher",
+  "publisher_display_name": "Example Studio",
+  "display_name": "Example App",
+  "architecture": "x64",
+  "version": "3.2.0.0",
+  "previous_version": "3.1.0.0",
+  "restricted_capabilities": []
+}

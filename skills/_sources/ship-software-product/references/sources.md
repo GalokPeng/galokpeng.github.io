@@ -10,4 +10,4 @@
 - [SPDX license information](https://spdx.dev/learn/handling-license-info/)：许可证标识和实际分发物许可记录。
 - [Open Source Definition](https://opensource.org/osd)：源码公开不自动构成正式开源；限制商业领域的许可与 OSI 开源定义不同。不要擅自选许可证、移除声明或声称依赖兼容，按真实条款核对，复杂分发寻求合适的专业审查。
 
-这些链接于 2026-11-12 核对。这里只提炼工作流约束，不复制平台手册或许可条文。版本化链接说明所参考的版本，不代表其永远最新。
+上述通用入口于 2026-11-12 核对。Windows 包、签名、受限能力、送审、认证和 GitHub 附件的官方文档于 2026-11-23 核对，链接列在相应操作旁。[Windows 商店流程](10-windows-store.md) · [构建与发布流水线](05-build-release.md)

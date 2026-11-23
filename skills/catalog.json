@@ -12,8 +12,8 @@
   {
     "name": "软件产品全链路交付",
     "nameEn": "Ship a Software Product",
-    "description": "按产品类型规划开发、测试、打包和上线，包含发布清单、交接模板，以及校验产物和线上地址的 Python 工具。",
-    "descriptionEn": "Plan development, testing, packaging and release for your product. Includes release checklists, handoff templates and Python tools for verifying builds and live endpoints.",
+    "description": "从开发、测试到打包上线，按产品类型安排交付。附发布清单和校验工具，涵盖 GitHub Release 附件核对、Windows MSIX 包检查和 Microsoft Store 送审。",
+    "descriptionEn": "Plan development, testing, packaging and launch. Use the checklists and tools to verify GitHub Release assets, inspect Windows MSIX packages and prepare a Microsoft Store submission.",
     "file": "ship-software-product.zip",
     "cover": "software-delivery.webp",
     "guide": "ship-software-product",
