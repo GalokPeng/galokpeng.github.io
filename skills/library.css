@@ -30,11 +30,11 @@
 }
 
 .collection-tabs a[aria-current="page"] {
-  color: #fff;
+  color: var(--paper);
   background: var(--ink);
 }
 
-.collection-tabs a:not([aria-current]):hover { color: var(--blue); background: #dce6eb; }
+.collection-tabs a:not([aria-current]):hover { color: var(--blue); background: var(--wash-hover); }
 
 .catalog-grid {
   display: grid;
@@ -51,7 +51,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--edge);
   border-radius: 14px;
   overflow-wrap: anywhere;
@@ -127,12 +127,12 @@
   padding: .6rem 1.15rem;
   border-radius: 999px;
   background: var(--blue);
-  color: #fff;
+  color: var(--on-blue);
 }
 
-.card-actions .primary-action:hover { background: #17389a; }
+.card-actions .primary-action:hover { background: var(--ink); color: var(--paper); }
 .card-actions .primary-action:not([download]) { background: var(--wash); color: var(--blue); }
-.card-actions .primary-action:not([download]):hover { background: #d9e4ed; }
+.card-actions .primary-action:not([download]):hover { background: var(--wash-hover); }
 
 #skill-status { color: var(--muted); }
 

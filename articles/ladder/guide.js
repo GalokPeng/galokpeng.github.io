@@ -523,7 +523,6 @@ const pointCounts = D.runs
 const pointCount = pointCounts.icl + pointCounts.ood;
 
 function renderSources() {
-  $('#hero-rungs').textContent = RUNGS[0] + ' → ' + RUNGS.at(-1);
   $('#run-count').textContent = D.runs.length + ' 个';
   $('#point-count').textContent = pointCount + ' 个';
   $('#coverage-count').textContent =
@@ -613,91 +612,6 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-const guide = $('#report-top');
-const tabs = $$('.guide-tabs a');
-const panels = $$('[data-panel]');
-$('.guide-tabs').setAttribute('role', 'tablist');
-for (const tab of tabs) {
-  tab.setAttribute('role', 'tab');
-  tab.setAttribute('aria-controls', tab.hash.slice(1));
-}
-for (const panel of panels) panel.setAttribute('role', 'tabpanel');
-function renderActive() {
-  const active = tabs.find((t) => t.getAttribute('aria-selected') === 'true')
-    ?.dataset.tab;
-  if (active === 'overview') renderOverview();
-  if (active === 'mixture') renderMixture();
-  if (active === 'results') {
-    renderDeltas();
-    renderDetails();
-  }
-  if (active === 'progress') renderHistory();
-}
-function activate(tab) {
-  for (const item of tabs) {
-    const selected = item === tab;
-    item.setAttribute('aria-selected', String(selected));
-    item.tabIndex = selected ? 0 : -1;
-    document.getElementById(item.hash.slice(1)).hidden = !selected;
-  }
-  renderActive();
-}
-function fromHash() {
-  let target;
-  try {
-    target = document.getElementById(
-      decodeURIComponent(location.hash.slice(1)),
-    );
-  } catch {}
-  const panel = target?.closest('[data-panel]');
-  activate(
-    tabs.find((tab) => tab.dataset.tab === panel?.dataset.panel) || tabs[0],
-  );
-  if (panel) target.scrollIntoView({ block: 'start' });
-}
-function selectTab(tab) {
-  activate(tab);
-  if (location.hash !== tab.hash) history.pushState(null, '', tab.hash);
-}
-tabs.forEach((tab, index) => {
-  tab.addEventListener('click', (event) => {
-    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)
-      return;
-    event.preventDefault();
-    selectTab(tab);
-  });
-  tab.addEventListener('keydown', (event) => {
-    const offsets = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
-    const key = event.key;
-    if (!(key in offsets) && !['Home', 'End', ' '].includes(key)) return;
-    event.preventDefault();
-    const next =
-      key === 'Home'
-        ? 0
-        : key === 'End'
-          ? tabs.length - 1
-          : (index + (offsets[key] || 0) + tabs.length) % tabs.length;
-    selectTab(tabs[next]);
-    tabs[next].focus();
-  });
-});
-window.addEventListener('hashchange', fromHash);
-const themeButton = $('#theme-toggle');
-function setTheme(theme) {
-  guide.dataset.theme = theme;
-  themeButton.textContent = theme === 'dark' ? '浅色模式' : '深色模式';
-}
-setTheme(
-  load('ladder-guide-simulation-theme') ||
-    (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
-);
-themeButton.hidden = false;
-themeButton.addEventListener('click', () => {
-  const theme = guide.dataset.theme === 'dark' ? 'light' : 'dark';
-  setTheme(theme);
-  save('ladder-guide-simulation-theme', theme);
-});
-
 options('budget-rung', RUNGS, RUNGS.at(-1));
 options('detail-rung', RUNGS, RUNGS[2]);
 options('history-rung', RUNGS, RUNGS[1]);
@@ -746,11 +660,6 @@ $$('[data-quiz]').forEach((button) =>
   }),
 );
 
-let resizeTimer;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(renderActive, 120);
-});
 renderSources();
 
 function showDesign() {
@@ -764,25 +673,34 @@ function showDesign() {
 for (const radio of $$('[name="guide-goal"], #guide-diagonal'))
   radio.addEventListener('change', showDesign);
 showDesign();
-for (const jump of $$('[data-go-tab]'))
-  jump.addEventListener('click', () => {
-    const tab = tabs.find((item) => item.dataset.tab === jump.dataset.goTab);
-    selectTab(tab);
-    tab.focus();
-    document.getElementById(tab.hash.slice(1)).scrollIntoView();
-  });
-const copy = $('#copy-card');
-if (navigator.clipboard) {
-  copy.hidden = false;
-  copy.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(
-        $('#experiment-card pre code').textContent,
-      );
-      copy.textContent = '已复制';
-    } catch {
-      copy.textContent = '请选中并复制实验卡';
-    }
-  });
+// The document already contains the default figures and tables. Upgrade each
+// experiment section when the reader approaches it, including via a deep link.
+const renderSections = new Map([
+  [$('#panel-overview'), renderOverview],
+  [$('#panel-mixture'), renderMixture],
+  [$('#panel-results'), () => { renderDeltas(); renderDetails(); }],
+  [$('#panel-progress'), renderHistory],
+]);
+const nearby = new Set();
+const renderedWidths = new Map();
+function fitSection(section) {
+  const width = section.clientWidth;
+  if (width === renderedWidths.get(section)) return;
+  renderedWidths.set(section, width);
+  renderSections.get(section)();
 }
-fromHash();
+const observer = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    if (entry.isIntersecting) {
+      nearby.add(entry.target);
+      fitSection(entry.target);
+    } else {
+      nearby.delete(entry.target);
+    }
+  }
+}, {rootMargin: '200px 0px'});
+for (const section of renderSections.keys()) observer.observe(section);
+
+new ResizeObserver(() => {
+  for (const section of nearby) fitSection(section);
+}).observe($('.prose'));

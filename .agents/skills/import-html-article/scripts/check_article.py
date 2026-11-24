@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import sys
 import unicodedata
+from urllib.parse import unquote
 
 from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 
@@ -80,12 +81,34 @@ def audit(source, target):
     return issues
 
 
+def reader_issues(path):
+    """Validate the Galok reader shell separately from source-text fidelity."""
+    doc = BeautifulSoup(path.read_text(encoding="utf-8-sig"), "html.parser")
+    problems = []
+    reader = doc.select_one("main .reading-layout article.prose")
+    if reader is None or not reader.select_one("p, h2, table, pre"):
+        problems.append(("reader", "Missing native article body in the shared reading layout"))
+    if not doc.select_one("main .reading-head h1"):
+        problems.append(("reader", "Missing shared article heading"))
+    toggles = doc.select("#site-theme")
+    if len(toggles) != 1 or not doc.select_one(".masthead button#site-theme"):
+        problems.append(("theme", "Expected one shared theme button in the masthead"))
+    if doc.select_one("main [data-theme], main #theme-toggle, main #site-theme"):
+        problems.append(("theme", "Article contains its own theme control or theme root"))
+    for link in doc.select(".contents a[href^='#']"):
+        if not doc.find(id=unquote(link["href"][1:])):
+            problems.append(("reader anchor", link["href"]))
+    return problems
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path)
     parser.add_argument("target", type=Path)
     parser.add_argument("--source-selector", default="body")
     parser.add_argument("--target-selector", default="body")
+    parser.add_argument("--check-reader", action="store_true",
+                        help="Also check the full target page for Galok's reading layout, theme and contents links")
     args = parser.parse_args()
     source = select(args.source, args.source_selector)
     target = select(args.target, args.target_selector)
@@ -94,9 +117,11 @@ def main():
                             ("controls", "button,select,input,details,[role=tab]")]:
         print(f"{label}: {len(source.select(selector))} source / {len(target.select(selector))} target")
     issues = audit(source, target)
+    if args.check_reader:
+        issues.extend(reader_issues(args.target))
     for label, value in issues:
-        print(f"Missing {label}: {value}")
-    print(f"{len(issues)} textual, tabular, code or reference differences requiring review.")
+        print(f"{label}: {value}")
+    print(f"{len(issues)} differences requiring review.")
     return int(bool(issues))
 
 

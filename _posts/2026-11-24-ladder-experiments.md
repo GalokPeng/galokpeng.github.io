@@ -1,22 +1,38 @@
 ---
-layout: ladder-guide
+layout: reading
+headline: Ladder 实验指南
+headline_en: Ladder Experiment Guide
+subtitle: MoE 规模、数据与评测
+subtitle_en: MoE Scale, Data and Evaluation
+lead: 从想做的决策出发，选择要改变的变量，设计可比较的档位，再用 Loss、能力和成本决定是否扩大投入。
+reading_figure: ladder-preview.html
+reading_actions:
+  - {label: 打开语料配方案例, en: Explore the mixture case, url: "#panel-overview"}
+  - {label: 下载模拟数据, en: Download data, url: /articles/ladder/data.json, download: ladder_text_mixture_simulated_data.json}
+chapters:
+  - id: panel-guide
+    label: 实验指南
+    topics:
+      - [guide-purpose, 为什么做]
+      - [guide-pick, 选实验设计]
+      - [guide-measure, 参数与预算]
+      - [guide-run, 设计、训练与评测]
+      - [guide-decide, 读结果与做决策]
+  - {id: panel-overview, label: 全流程地图}
+  - {id: panel-mixture, label: 配比与备数}
+  - {id: panel-results, label: 五档模拟结果}
+  - {id: panel-progress, label: 训练中的变化}
+  - {id: panel-reliability, label: 原因与可靠性}
+  - {id: panel-practice, label: 实验卡与数据}
 title: "Ladder 实验指南 · MoE 规模、数据与评测"
 title_en: "Ladder Experiment Guide · MoE Scale, Data and Evaluation"
 description: "从目标出发设计语言模型预训练 Ladder 实验。涵盖规模、稀疏度、专家粒度、数据配方和超参，并附可交互模拟案例。"
 description_en: "A Chinese-language guide to pretraining experiments on model scale, sparsity, expert granularity, data mixtures and optimization, with an interactive case study."
 cover: /articles/ladder/mixture-deltas.webp
-article_css: /articles/ladder/guide.css
+article_css: "/articles/ladder/guide.css?v=reader-2"
 ---
 
-<section id="panel-guide" data-panel="guide" aria-labelledby="tab-guide" markdown="1">
-
-<nav aria-label="实验指南目录" class="guide-jumps">
-<a href="#guide-purpose">为什么做</a>
-<a href="#guide-pick">选实验设计</a>
-<a href="#guide-measure">参数与预算</a>
-<a href="#guide-run">设计、训练与评测</a>
-<a href="#guide-decide">读结果与做决策</a>
-</nav>
+<section id="panel-guide" data-panel="guide" markdown="1">
 
 <section id="guide-purpose" markdown="1">
 
@@ -300,13 +316,13 @@ L(N<sub>active</sub>, D) ≈ L<sub>∞</sub> + A × N<sub>active</sub><sup>−α
 
 > **套回模拟语料案例。** 每档固定训练设置，比较基准配方、替换配方和移除一个语料组后的配方。先算同档分差，再看五档的方向是否一致。移除语料组同时改变了语言比例，想定位该语料组的作用，可以增加一个同语言、等 token 的替换条件。这个矩阵可演示跨规模的配方比较。预测目标规模 Loss 需要按上面的规模设计补齐独立预算点。
 
-<button class="btn primary guide-case-button" data-go-tab="overview" type="button">打开语料配方案例</button>
+[打开语料配方案例](#panel-overview)
 
 </section>
 
 </section>
 
-<section id="panel-overview" data-panel="overview" aria-labelledby="tab-overview" markdown="1">
+<section id="panel-overview" data-panel="overview" markdown="1">
 
 ## 换一套语料配方，能力会怎么变？
 
@@ -457,7 +473,7 @@ L(N<sub>active</sub>, D) ≈ L<sub>∞</sub> + A × N<sub>active</sub><sup>−α
 
 </section>
 
-<section id="panel-mixture" data-panel="mixture" aria-labelledby="tab-mixture" markdown="1">
+<section id="panel-mixture" data-panel="mixture" markdown="1">
 
 DATA IS A BUDGET
 
@@ -561,7 +577,7 @@ DATA IS A BUDGET
 
 </section>
 
-<section id="panel-results" data-panel="results" aria-labelledby="tab-results" markdown="1">
+<section id="panel-results" data-panel="results" markdown="1">
 
 COMPARE LIKE WITH LIKE
 
@@ -643,7 +659,7 @@ exp1 − exp0 衡量全配方替换。exp2 − exp1 衡量移除一个来源并�
 
 </section>
 
-<section id="panel-progress" data-panel="progress" aria-labelledby="tab-progress" markdown="1">
+<section id="panel-progress" data-panel="progress" markdown="1">
 
 LEARNING IS A TRAJECTORY
 
@@ -749,7 +765,7 @@ BPC 越低越好。曲线在设为缺失的评测点留出间断。
 
 </section>
 
-<section id="panel-reliability" data-panel="reliability" aria-labelledby="tab-reliability" markdown="1">
+<section id="panel-reliability" data-panel="reliability" markdown="1">
 
 EVIDENCE BEFORE EXPLANATION
 
@@ -829,7 +845,7 @@ EVIDENCE BEFORE EXPLANATION
 
 </section>
 
-<section id="panel-practice" data-panel="practice" aria-labelledby="tab-practice" markdown="1">
+<section id="panel-practice" data-panel="practice" markdown="1">
 
 YOUR NEXT EXPERIMENT
 
@@ -1075,8 +1091,10 @@ YOUR NEXT EXPERIMENT
 - 决定：采用、补测或停止；写下依据和下一组对照
 ```
 
-<button type="button" id="copy-card" hidden>复制实验卡</button>
-
 </details>
 
 </section>
+
+Ladder 实验指南 · 案例图表与下载文件均使用模拟数据。
+
+{% include ladder-tools.html %}

@@ -37,11 +37,11 @@
 .prose h4 { margin-bottom: .5rem; }
 .prose ul, .prose ol { padding-inline-start: 1.5em; }
 .prose li + li { margin-top: .4em; }
-.prose blockquote { border-inline-start: 3px solid #4c74a4; padding: .85rem 1.15rem; background: var(--wash); color: #294554; }
+.prose blockquote { border-inline-start: 3px solid var(--blue); padding: .85rem 1.15rem; background: var(--wash); color: var(--ink); }
 .prose blockquote > :last-child { margin-bottom: 0; }
 .prose a { color: var(--blue); text-decoration: underline; text-underline-offset: .18em; }
 .prose img { display: block; max-width: 100%; height: auto; }
-.prose :not(pre) > code { font-size: .87em; background: #e7edf0; padding: .1em .3em; border-radius: 3px; }
+.prose :not(pre) > code { font-size: .87em; background: var(--wash); padding: .1em .3em; border-radius: 3px; }
 .prose pre { max-width: 100%; overflow-x: auto; padding: 1.1rem; border-radius: 6px; background: #193542; color: #f1f5f6; font: .83rem/1.65 Consolas, monospace; tab-size: 4; }
 .prose pre code { white-space: pre; }
 .prose .highlight .c, .prose .highlight .c1 { color: #bdd1d2; }
@@ -66,4 +66,20 @@
 @media (max-width: 660px) {
   .record-illustrated a { grid-template: "art" auto "date" auto "text" auto / minmax(0, 1fr); }
   .record-cover { margin-bottom: .4rem; }
+}
+
+.illustrated-head { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(16rem, .8fr); gap: clamp(2rem, 6vw, 6rem); align-items: center; }
+.reading-heading { min-width: 0; }
+.reading-subtitle { margin: .4rem 0 .95rem; font-size: clamp(1.2rem,2.2vw,1.65rem); font-weight: 520; letter-spacing: -.025em; line-height: 1.4; }
+.reading-lead { max-width: 39em; color: var(--muted); line-height: 1.75; text-wrap: pretty; }
+.reading-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem 1.15rem; margin-top: 1rem; }
+.reading-actions a { display: inline-flex; align-items: center; min-height: 42px; color: var(--blue); font-size: .91rem; font-weight: 620; text-underline-offset: .23em; }
+.reading-actions a:first-child { border-radius: 6px; padding-inline: .95rem; background: var(--blue); color: var(--on-blue); }
+.reading-actions a[download] { text-decoration: underline; }
+.reading-actions a:first-child:hover { background: var(--ink); color: var(--paper); }
+.contents ol ol { margin: 0 0 .6rem .85rem; border: 0; }
+.contents ol ol a { padding-block: .2rem; font-size: .82rem; }
+@media (max-width: 720px) {
+  .illustrated-head { grid-template-columns: 1fr; gap: 1.4rem; }
+  .contents ol ol a { min-height: 40px; }
 }

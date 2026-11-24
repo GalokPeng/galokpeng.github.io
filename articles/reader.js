@@ -2,8 +2,9 @@ import {localized} from '/home/language.js';
 
 const article = document.querySelector('.prose');
 const contents = document.querySelector('.contents');
-const sections = [...article.querySelectorAll('h2[id]')];
-if (sections.length > 1) {
+const hasChapterList = !!contents.querySelector('a');
+const sections = hasChapterList ? [] : [...article.querySelectorAll('h2[id]')];
+if (sections.length > 1 || hasChapterList) {
   const details = contents.querySelector('details');
   const list = contents.querySelector('ol');
   for (const section of sections) {
@@ -21,17 +22,37 @@ if (sections.length > 1) {
   wide.addEventListener('change', sizeContents);
   contents.hidden = false;
 
+  const links = [...list.querySelectorAll('a')];
+  const targets = links.map(link => document.getElementById(decodeURIComponent(link.hash.slice(1))));
+  let scheduled = false;
+  let current;
   function markTarget() {
-    for (const link of list.querySelectorAll('a')) {
-      if (link.hash === location.hash) link.setAttribute('aria-current', 'location');
-      else link.removeAttribute('aria-current');
+    scheduled = false;
+    const threshold = Math.min(innerHeight * .23, 160);
+    let index = 0;
+    for (const [i, target] of targets.entries()) {
+      if (target && target.getBoundingClientRect().top <= threshold) index = i;
     }
+    if (current === links[index]) return;
+    current?.removeAttribute('aria-current');
+    current = links[index];
+    current.setAttribute('aria-current', 'location');
   }
+  function track() {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(markTarget);
+  }
+  list.addEventListener('click', event => {
+    if (!wide.matches && event.target.closest('a') && !event.ctrlKey && !event.metaKey) details.open = false;
+  });
   markTarget();
-  window.addEventListener('hashchange', markTarget);
+  window.addEventListener('scroll', track, {passive: true});
+  window.addEventListener('resize', track);
 }
 
 for (const table of article.querySelectorAll('table')) {
+  if (table.closest('.table-wrap')) continue;
   const scroller = document.createElement('div');
   scroller.className = 'table-scroll';
   table.before(scroller);

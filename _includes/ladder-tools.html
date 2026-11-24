@@ -1,0 +1,6 @@
+<dialog id="data-drawer" aria-labelledby="drawer-title">
+  <div class="drawer-header"><h2 id="drawer-title">查看数据</h2><button id="drawer-close" type="button">关闭</button></div>
+  <div id="drawer-content"></div>
+</dialog>
+<script type="application/json" id="report-data">{{ site.data.ladder | jsonify }}</script>
+<script type="module" src="/articles/ladder/guide.js?v=reader-2"></script>

@@ -1,0 +1,17 @@
+<figure class="mixture-preview" aria-labelledby="mixture-caption">
+  <figcaption id="mixture-caption"><strong data-en="ICL change after replacing the mixture">换配方后的 ICL 分差</strong><span>exp1 − exp0</span></figcaption>
+  <ul>
+    {% for rung in site.data.ladder.rungs %}
+      {% assign runs = site.data.ladder.runs | where: 'rung', rung %}
+      {% assign base = runs | where: 'experiment', 'exp0' | first %}
+      {% assign mix = runs | where: 'experiment', 'exp1' | first %}
+      {% assign delta = mix.final.icl.score | minus: base.final.icl.score | round: 2 %}
+      <li>
+        <span class="rung-name">{{ rung }}</span>
+        <span class="delta-track" aria-hidden="true"><i class="{% if delta < 0 %}loss{% endif %}" style="--bar: {{ delta | abs | times: 80 }}%"></i></span>
+        <span class="delta-value">{% if delta > 0 %}+{% endif %}{{ delta }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+  <p>文本语料配方模拟，5 档 × 3 配方（{{ site.data.ladder.rungs | first }} → {{ site.data.ladder.rungs | last }}）。训练与评测数据均为虚构。</p>
+</figure>

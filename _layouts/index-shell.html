@@ -11,14 +11,15 @@
   <link rel="icon" href="/home/brand/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/home/brand/apple-touch-icon.png" sizes="180x180">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="stylesheet" href="/home/index.css?v=atlas-1">
+  <script>{% include site-theme.js %}</script>
+  <link rel="stylesheet" href="/home/index.css?v=reader-2">
   {% if page.section == 'skills' %}
-  <link rel="stylesheet" href="/skills/library.css?v=atlas-1">
+  <link rel="stylesheet" href="/skills/library.css?v=reader-2">
   <script type="module" src="/skills/library.js?v=library-3"></script>
   {% else %}
   <script type="module" src="/home/language.js"></script>
   {% endif %}
-  {% if page.section == 'articles' %}<link rel="stylesheet" href="/articles/reading.css?v=atlas-1">{% endif %}
+  {% if page.section == 'articles' %}<link rel="stylesheet" href="/articles/reading.css?v=reader-2">{% endif %}
   {% if page.article_css %}<link rel="stylesheet" href="{{ page.article_css | relative_url | escape }}">{% endif %}
   {% if page.section == 'sites' %}
   <meta name="google-site-verification" content="wwYQkhI3vHjQzLbLIv8aZAOjxPyctIldvmvCiEcLGao">
@@ -36,15 +37,20 @@
   <header class="masthead">
     <div class="wrap headline">
       <a class="wordmark" href="/" data-site-link aria-label="Galok 首页" data-en-label="Galok home"><img src="/home/brand/galok.svg" width="33" height="33" alt="">Galok<span>.</span></a>
+
+      <div class="utilities">
+        <a href="https://github.com/GalokPeng" lang="en">GitHub</a>
+        <button id="site-theme" type="button" aria-label="切换到深色模式" hidden>
+          <svg class="theme-moon" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M20.6 14.2A8.9 8.9 0 0 1 9.8 3.4 8.8 8.8 0 1 0 20.6 14.2Z"/></svg>
+          <svg class="theme-sun" aria-hidden="true" viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+        </button>
+        <button id="language" type="button" lang="en" aria-label="Switch to English" hidden>EN</button>
+      </div>
       <nav aria-label="主导航" data-en-label="Main navigation">
         <a href="/" data-site-link {% if page.section == 'sites' %}aria-current="page"{% endif %} data-en="Home">首页</a>
         <a href="/articles/" data-site-link {% if page.section == 'articles' %}aria-current="true"{% endif %} data-en="Articles">文章</a>
         <a href="/skills/" data-site-link {% if page.section == 'skills' %}aria-current="true"{% endif %}>Skills</a>
       </nav>
-      <div class="utilities">
-        <a href="https://github.com/GalokPeng" lang="en">GitHub</a>
-        <button id="language" type="button" lang="en" aria-label="Switch to English" hidden>EN</button>
-      </div>
     </div>
   </header>
   <main id="main" class="wrap" tabindex="-1">{{ content }}</main>
