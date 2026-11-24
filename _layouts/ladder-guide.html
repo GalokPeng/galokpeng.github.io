@@ -1,0 +1,34 @@
+---
+layout: index-shell
+---
+<article class="ladder-guide" id="report-top" lang="zh-CN">
+  <header class="reading-head">
+    <a class="back-link" href="/articles/" data-site-link><span aria-hidden="true">←</span> <span data-en="All articles">全部文章</span></a>
+    <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: '%Y.%m.%d' }}</time>
+    <h1 data-en="{{ page.title_en | escape }}">{{ page.title | escape }}</h1>
+    <p>从想做的决策出发，选择要改变的变量，设计可比较的档位，再用 Loss、能力和成本决定是否扩大投入。</p>
+    <p><strong>文本语料配方模拟</strong> · 5 档 × 3 配方 · <span id="hero-rungs">1.4B → 11.2B</span> · 训练与评测数据均为虚构</p>
+    <div class="guide-actions">
+      <a href="#panel-overview">打开语料配方案例</a>
+      <a download="ladder_text_mixture_simulated_data.json" href="/articles/ladder/data.json">下载模拟数据</a>
+      <button id="theme-toggle" type="button" aria-label="切换深浅主题" hidden>切换主题</button>
+    </div>
+  </header>
+  <nav class="guide-tabs" aria-label="指南与案例章节">
+    <a id="tab-guide" data-tab="guide" href="#panel-guide">实验指南</a>
+    <a id="tab-overview" data-tab="overview" href="#panel-overview">01 全流程地图</a>
+    <a id="tab-mixture" data-tab="mixture" href="#panel-mixture">02 配比与备数</a>
+    <a id="tab-results" data-tab="results" href="#panel-results">03 五档模拟结果</a>
+    <a id="tab-progress" data-tab="progress" href="#panel-progress">04 训练中的变化</a>
+    <a id="tab-reliability" data-tab="reliability" href="#panel-reliability">05 原因与可靠性</a>
+    <a id="tab-practice" data-tab="practice" href="#panel-practice">06 实验卡与数据</a>
+  </nav>
+  <div class="guide-content">{{ content }}</div>
+  <p class="source-note"><strong>Ladder 实验指南</strong> · 案例图表与下载文件均使用模拟数据。</p>
+  <dialog id="data-drawer" aria-labelledby="drawer-title">
+    <div class="drawer-header"><h2 id="drawer-title">查看数据</h2><button id="drawer-close" type="button">关闭</button></div>
+    <div id="drawer-content"></div>
+  </dialog>
+</article>
+<script type="application/json" id="report-data">{{ site.data.ladder | jsonify }}</script>
+<script type="module" src="/articles/ladder/guide.js"></script>

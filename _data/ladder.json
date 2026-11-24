@@ -1,7 +1,7 @@
 {
   "snapshot": "text-mixture-simulation-v1",
   "synthetic": true,
-  "purpose": "训练配置、数据配方、评测指标与缺失记录均为构造的示例。",
+  "purpose": "训练配置、数据配方、评测指标与缺失记录均为虚构。",
   "design": {
     "experimental_share": 0.16,
     "buffer": 1.35,

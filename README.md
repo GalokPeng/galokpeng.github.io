@@ -23,6 +23,8 @@ description: "一两句介绍文章内容。"
 
 标题写在文件头。可选的 `title_en` 和 `description_en` 用于英文导航界面，正文保留原文语言（默认为中文，英文稿可加 `language: en`）。需要列表封面时，将图片放在 `articles/` 并设置 `cover: /articles/文件名.webp`。推送该 Markdown 后，Pages 自动生成独立阅读页、文章列表、首页最近三篇和站点地图。两节及以上的文章会从二级标题生成目录。
 
+收到 HTML 原稿时，可让 Agent 使用 `$import-html-article` 把全文、公式、表格和交互迁入 Markdown 文章页，并对照原稿检查构建结果。[HTML 文章迁移 Skill](.agents/skills/import-html-article/SKILL.md)
+
 ## 本地预览
 
 安装 Ruby 和 Bundler 后在仓库根目录运行 `bundle install`，再运行 `bundle exec jekyll serve`，打开 `http://localhost:4000/`。预览包含与发布页相同的 Markdown 和模板处理。

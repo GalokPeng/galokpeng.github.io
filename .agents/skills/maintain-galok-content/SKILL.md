@@ -21,6 +21,8 @@ description: 在 GalokPeng/galokpeng.github.io 中发布 Markdown 文章、维�
 
 ## 发布文章
 
+收到 HTML 原稿时使用同仓库的 [HTML 文章迁移 Skill](../import-html-article/SKILL.md)，其中包含构建前后的正文核对工具和交互核对方法。
+
 按根目录 README 的示例在 `_posts/YYYY-MM-DD-short-title.md` 添加 Markdown。沿用作者的标题、正文、表格和代码，标题移入文件头。填写摘要，需要在英文界面显示译名时添加 `title_en` 与 `description_en`。Jekyll 自动索引文章。验证正文页、目录锚点、手机上的宽表格和长代码，以及列表到正文的链接。
 
 ## 验证改动
