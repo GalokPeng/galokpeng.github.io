@@ -1,0 +1,9 @@
+<figure class="ladder-figure" id="ladder-history">
+  <label class="ladder-controls" hidden>查看训练曲线的模型档位
+    <select id="history-rung">{% for rung in site.data.ladder.rungs %}<option{% if rung == '2.8B' %} selected{% endif %}>{{ rung }}</option>{% endfor %}</select>
+  </label>
+  <img src="/articles/ladder/history-2.8B.webp" width="1120" height="900" loading="lazy" alt="2.8B 档三套配方相对基准的 ICL 综合分和技术文档 BPC 差值曲线">
+  <figcaption><strong id="history-context">2.8B 档</strong> · 基准 exp0 对应零线。上图 ICL 高于零表示改善，下图技术文档 BPC 低于零表示改善。横轴均为已消费的训练 token。</figcaption>
+  <p id="history-links">各档曲线原图 · {% for rung in site.data.ladder.rungs %}<a href="/articles/ladder/history-{{ rung }}.webp">{{ rung }}</a>{% unless forloop.last %} / {% endunless %}{% endfor %}</p>
+</figure>
+<script type="module" src="/articles/ladder/figures.js"></script>

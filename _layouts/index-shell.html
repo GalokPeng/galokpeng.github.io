@@ -19,6 +19,7 @@
   <script type="module" src="/home/language.js"></script>
   {% endif %}
   {% if page.section == 'articles' %}<link rel="stylesheet" href="/articles/reading.css?v=atlas-1">{% endif %}
+  {% if page.article_css %}<link rel="stylesheet" href="{{ page.article_css | relative_url | escape }}">{% endif %}
   {% if page.section == 'sites' %}
   <meta name="google-site-verification" content="wwYQkhI3vHjQzLbLIv8aZAOjxPyctIldvmvCiEcLGao">
   <script>
