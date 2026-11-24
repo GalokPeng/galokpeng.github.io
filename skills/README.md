@@ -10,6 +10,7 @@
 | `file` | 本目录下保留原件的 `.zip` 或 `.skill` 文件名。 |
 | `cover` | 可选封面，填写 `covers/` 内的 WebP 文件名（小写字母、数字、短横线）。推荐画幅 12∶5，省略时展示文字卡片。 |
 | `guide` | 本站收录的说明目录。入口位于 `_sources/<guide>/SKILL.md`。 |
+| `guideLanguage` | 说明正文语言，可填 `zh` 或 `en`。个人 Skill 默认中文，引用 Skill 默认英文。 |
 | `source` | 引用 Skill 的 GitHub 来源，填写 `repository`、`revision`（完整提交 SHA）、`path`（仓库内 Skill 目录）、`license` 和 `licenseFile`（相对该目录）。 |
 | `reference` | 随插件提供的 Skill 可填写发布方 `publisher`、插件版本 `version` 和官方说明 `url`。可用 `label`、`labelEn` 区分公开版参考链接，可用 `license` 标注包的许可。仅收录官方说明时省略 `file`。 |
 

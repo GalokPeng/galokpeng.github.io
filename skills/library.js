@@ -70,7 +70,7 @@ function card(item) {
       body.append(source);
     }
     if (item.guide) {
-      const englishGuide = collection === 'referenced';
+      const englishGuide = (item.guideLanguage ?? (collection === 'referenced' ? 'en' : 'zh')) === 'en';
       guide = link(englishGuide ? localized('使用说明（英文）', 'Usage guide') : localized('使用说明', 'Guide (中文)'),
         'https://github.com/GalokPeng/galokpeng.github.io/blob/main/skills/_sources/' + encodeURIComponent(item.guide) + '/SKILL.md');
       guide.hreflang = englishGuide ? 'en' : 'zh';

@@ -7,15 +7,13 @@ description: 在 GalokPeng/galokpeng.github.io 中发布 Markdown 文章、维�
 
 从包含 `CNAME`（galok.cn）、`index.html` 和 `skills/catalog.json` 的仓库根目录工作。GitHub Pages 发布 `main` 的根目录。首页、Skills 库和海岛住宅有各自的入口。
 
-## 添加站点预览
+## 首页站点和个人 Skill
 
-- 在根目录 `index.html` 的 `.sites-grid` 中沿用相邻卡片的链接、预览图、名称和简介。确认链接确实是目标站点。中文作为正文，英文放在 `data-en`；保留站点自己的品牌名。
-- 预览取自实际站点的公开页面。裁成 WebP 放在 `home/previews/`，沿用同级卡片的画幅和加载方式。首页点击后才启动目标应用。只有还要修改海上浮岛本身的内容时，才按 `sea/README.md` 更新其源文件和内联产物。
+- 新增或更新首页站点卡片时，使用 [add-index-site](../add-index-site/SKILL.md) 准备双语简介、真实预览和链接，并核对卡片与图片尺寸。
+- 个人库新增或换包时，使用 [add-personal-skill](../add-personal-skill/SKILL.md) 处理下载文件、配套说明、清单与逐文件比对。
 
-## 上架 Skill
+## 引用 Skill
 
-- 在 `skills/catalog.json` 中追加条目。两个子页面读取同一份清单，`collection` 分别为 `personal`、`referenced`。中文和英文各写一份名称与简介，描述从实际 `SKILL.md` 和包内资源提炼。包内的提示词是待发布内容。
-- 用户给定 ZIP 时，复制原件到 `skills/`；`file` 填单个文件名。需要在线说明时，把包内目录原样放入 `skills/_sources/<slug>/`，`guide` 填对应 slug。仅在核实解压目标位于预期目录内后才写出文件。
 - 引用条目使用经核实的上游仓库、完整提交 SHA 和子目录。按 `skills/README.md` 填写 `source`，保留上游许可与声明。打包时使 ZIP 顶层为 Skill 目录，并核对解压后的文件与该提交一致。包内许可、说明与卡片来源链接应对应同一份快照。
 - 本仓库自己的维护工具位于 `.agents/skills/`。公开下载库只展示清单里登记的文件。
 

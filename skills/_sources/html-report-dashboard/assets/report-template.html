@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>规则筛选交叉 · 证据下钻示例</title>
+  <style>
+    :root { color-scheme:light; --bg:#f5f7fa; --paper:#fff; --ink:#14213a; --muted:#475a71; --line:#d4deeb; --soft:#edf3fa; --accent:#174dc5; --a:#1c73cf; --b:#a9460b; }
+    @media (prefers-color-scheme:dark) {
+      :root:not([data-theme]) { color-scheme:dark; --bg:#0d1522; --paper:#141f30; --ink:#edf3ff; --muted:#b4c3da; --line:#394b64; --soft:#1e304a; --accent:#a4c5ff; --a:#68b9fb; --b:#ffb06d; }
+    }
+    :root[data-theme="dark"] { color-scheme:dark; --bg:#0d1522; --paper:#141f30; --ink:#edf3ff; --muted:#b4c3da; --line:#394b64; --soft:#1e304a; --accent:#a4c5ff; --a:#68b9fb; --b:#ffb06d; }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 system-ui,sans-serif; }
+    body:has(dialog[open]) { overflow:hidden; }
+    main { max-inline-size:1240px; margin:auto; padding:clamp(16px,4vw,48px); }
+    h1,h2,h3,p { margin:0 0 .65em; } h1 { font-size:clamp(1.7rem,5vw,2.65rem); line-height:1.16; letter-spacing:-.025em; } h2 { font-size:1.23rem; }
+    button, input { font:inherit; color:inherit; }
+    button { min-block-size:44px; border:1px solid var(--line); border-radius:9px; padding:.42rem .8rem; background:var(--paper); cursor:pointer; }
+    button:hover:not(:disabled) { border-color:var(--accent); background:var(--soft); }
+    button:disabled { opacity:.6; cursor:default; }
+    :focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+    .top,.toolbar,.drawer-top { display:flex; align-items:flex-start; gap:.65rem 1rem; justify-content:space-between; flex-wrap:wrap; }
+    .top>div { flex:1 1 360px; min-width:0; }
+    .kicker { color:var(--accent); font-size:.8rem; letter-spacing:.12em; font-weight:750; }
+    .muted, caption { color:var(--muted); }
+    .takeaway { background:var(--soft); border-inline-start:4px solid var(--accent); padding:1rem 1.1rem; border-radius:8px; margin:1.25rem 0; }
+    .notice { border:1px solid var(--line); padding:.6rem .8rem; border-radius:8px; margin:1rem 0; }
+    .error { border-color:var(--b); }
+    .tabs { display:flex; flex-wrap:wrap; gap:.5rem; margin:1.25rem 0; }
+    [role="tab"][aria-selected="true"] { border-color:var(--accent); box-shadow:inset 0 -3px 0 var(--accent); font-weight:700; }
+    .layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1rem; }
+    .card { padding:clamp(15px,3vw,24px); border:1px solid var(--line); background:var(--paper); border-radius:15px; min-width:0; }
+    .venn-figure { margin:0; }
+    .diagram { display:block; width:min(100%,450px); margin:.4rem auto; }
+    .venn-hit { cursor:pointer; }
+    .venn-hit:hover { fill-opacity:.34; }
+    .venn-outline { pointer-events:none; }
+    .venn-number { fill:var(--ink); font:700 16px system-ui,sans-serif; text-anchor:middle; dominant-baseline:middle; pointer-events:none; }
+    .venn-actions { display:flex; flex-wrap:wrap; gap:.5rem; margin:.8rem 0; }
+    .region { color:var(--accent); text-align:left; font-weight:650; padding:.3rem .65rem; }
+    table { border-collapse:collapse; width:100%; }
+    th,td { padding:.45rem .52rem; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
+    th[scope="col"],caption { font-size:.9rem; }
+    caption { text-align:left; margin-bottom:.35em; }
+    .number { font-variant-numeric:tabular-nums; text-align:right; }
+    .link-action { color:var(--accent); border-color:transparent; text-decoration:underline; text-underline-offset:.18em; }
+    .link-action:hover { border-color:var(--accent); }
+    label { display:grid; gap:.25rem; }
+    input { min-height:44px; width:min(100%,340px); background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:.45rem .65rem; }
+    .filter { display:inline-flex; align-items:center; background:var(--soft); border:1px solid var(--line); border-radius:999px; padding:.15rem .65rem; font-weight:650; }
+    .row { display:flex; gap:.6rem; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); min-width:0; padding:.48rem 0; }
+    .row>div { min-width:0; overflow-wrap:anywhere; }
+    .row button { flex:none; }
+    .pager { display:flex; align-items:center; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
+    dialog { max-inline-size:none; max-block-size:none; inline-size:min(74vw,1160px); block-size:calc(100dvh - 28px); position:fixed; inset:14px 14px 14px auto; margin:0; padding:0; background:var(--paper); color:var(--ink); border:1px solid var(--line); border-radius:16px; box-shadow:0 20px 55px #07102255; }
+    dialog[open] { display:grid; grid-template-rows:auto minmax(0,1fr); }
+    dialog::backdrop { background:#070f2266; }
+    .drawer-top { padding:1rem 1.25rem .65rem; border-bottom:1px solid var(--line); flex-wrap:nowrap; }
+    .drawer-top>div { min-width:0; overflow-wrap:anywhere; }
+    .drawer-top h2 { margin-bottom:.1em; }
+    .drawer-top button { flex:none; }
+    .drawer-body { padding:1rem 1.25rem 2rem; overflow:auto; overscroll-behavior:contain; }
+    .fulltext { white-space:pre-wrap; overflow-wrap:anywhere; max-width:90ch; margin:0; }
+    @media (max-width:800px) { .layout { grid-template-columns:1fr; } dialog { inline-size:min(88vw,700px); } }
+    @media (max-width:580px) { dialog { inline-size:100%; block-size:100dvh; inset:0; border-radius:0; } .row { align-items:flex-start; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="top">
+      <div><p class="kicker">质量筛选 · 离线报告模板</p><h1>两条规则，选中了同一批记录吗？</h1><p class="muted">14 条虚构样本 · 13 条可比较 · 1 条数据缺失</p></div>
+      <button type="button" id="theme" hidden>切换显示主题</button>
+    </header>
+    <div class="takeaway"><strong>仅网页规则保留了 6 条记录。</strong> 两路同时保留 3 条。以下示例把聚合数字与同一批记录绑定，方便验证补捞条件。</div>
+    <p id="report-fallback" class="notice" role="status">如未能启用交互，仍可阅读总览结果与统计口径。</p>
+    <p id="report-error" class="notice error" role="alert" hidden></p>
+    <nav class="tabs" role="tablist" aria-label="报告视图" hidden>
+      <button id="tab-overview" role="tab" type="button" aria-selected="true" aria-controls="overview">总览</button>
+      <button id="tab-detail" role="tab" type="button" aria-selected="false" aria-controls="detail" tabindex="-1">数据详细</button>
+      <button id="tab-method" role="tab" type="button" aria-selected="false" aria-controls="method" tabindex="-1">统计口径</button>
+    </nav>
+    <section id="overview" role="tabpanel" aria-labelledby="tab-overview">
+      <div class="layout">
+        <article class="card">
+          <h2>两条规则的集合交叉</h2>
+          <p class="muted" id="venn-message">可直接查看交集表中的精确数量。</p>
+          <figure class="venn-figure" id="venn-figure" hidden>
+            <figcaption class="muted" id="venn-caption"></figcaption>
+            <svg class="diagram" id="venn-diagram" viewBox="0 0 360 216" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <defs><clipPath id="venn-clip-a"><circle data-geometry="a"/></clipPath></defs>
+              <circle data-geometry="a" data-hit="a" class="venn-hit" fill="var(--a)" fill-opacity=".20"/>
+              <circle data-geometry="b" data-hit="b" class="venn-hit" fill="var(--b)" fill-opacity=".21"/>
+              <circle data-geometry="b" data-hit="both" class="venn-hit" fill="var(--accent)" fill-opacity=".17" clip-path="url(#venn-clip-a)"/>
+              <circle data-geometry="a" class="venn-outline" fill="none" stroke="var(--a)" stroke-width="2"/>
+              <circle data-geometry="b" class="venn-outline" fill="none" stroke="var(--b)" stroke-width="2" stroke-dasharray="6 4"/>
+              <text class="venn-number" data-label="a"></text>
+              <text class="venn-number" data-label="both"></text>
+              <text class="venn-number" data-label="b"></text>
+            </svg>
+            <div class="venn-actions">
+              <button class="region" data-segment="a" type="button" hidden></button>
+              <button class="region" data-segment="both" type="button" hidden></button>
+              <button class="region" data-segment="b" type="button" hidden></button>
+            </div>
+            <p class="muted">点击图形区域、下方数据按钮或交集表，均可打开对应记录。</p>
+          </figure>
+        </article>
+        <article class="card">
+          <h2>精确数量</h2>
+          <table><caption>互斥分组；缺失不计作未通过</caption>
+            <thead><tr><th scope="col">范围</th><th scope="col" class="number">条数</th><th scope="col">下钻</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">仅论坛保留</th><td class="number" data-total="a">2</td><td><button class="link-action" data-segment="a" type="button" hidden></button></td></tr>
+              <tr><th scope="row">两路都保留</th><td class="number" data-total="both">3</td><td><button class="link-action" data-segment="both" type="button" hidden></button></td></tr>
+              <tr><th scope="row">仅网页保留</th><td class="number" data-total="b">6</td><td><button class="link-action" data-segment="b" type="button" hidden></button></td></tr>
+              <tr><th scope="row">两路都不保留</th><td class="number" data-total="neither">2</td><td><button class="link-action" data-segment="neither" type="button" hidden></button></td></tr>
+              <tr><th scope="row">缺失结果</th><td class="number" data-total="unknown">1</td><td><button class="link-action" data-segment="unknown" type="button" hidden></button></td></tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
+    </section>
+    <section id="detail" role="tabpanel" aria-labelledby="tab-detail" hidden>
+      <article class="card">
+        <div class="toolbar"><div><h2 id="detail-heading" tabindex="-1">数据详细</h2><p id="scope" class="filter"></p></div>
+          <div><button id="return" type="button" hidden>返回对应结果</button> <button id="clear" type="button">清空筛选</button></div>
+        </div>
+        <label for="search">在当前范围搜索 ID 或正文<input id="search" type="search"></label>
+        <p id="matches" class="muted" role="status"></p>
+        <div id="rows"></div>
+        <div class="pager"><button id="prev" type="button">上一页</button><span id="page"></span><button id="next" type="button">下一页</button></div>
+      </article>
+    </section>
+    <section id="method" class="card" role="tabpanel" aria-labelledby="tab-method">
+      <h2>统计口径</h2>
+      <p>按稳定 ID 对齐，两路都给出判断的 13 条记录构成可比全集。圆面积表示各规则的保留总量，重叠部分表示同时保留；仅通过一个规则、两个规则或两个均未通过互斥。两路都不保留和有空值的记录仅列在交集表中。所有记录均为虚构示例。</p>
+      <p class="muted">复用模板时，按新报告的问题选图、用真实口径/证据替换所有示例内容，再做验收。</p>
+    </section>
+  </main>
+  <dialog id="drawer" aria-labelledby="drawer-title">
+    <header class="drawer-top"><div><h2 id="drawer-title" tabindex="-1"></h2><p id="drawer-context" class="muted"></p></div><button id="drawer-close" type="button">关闭详情</button></header>
+    <div class="drawer-body" id="drawer-body" tabindex="0" aria-label="完整记录">
+      <p id="drawer-scores"></p><h3>完整正文</h3><p id="drawer-text" class="fulltext"></p>
+    </div>
+  </dialog>
+  <script id="report-data" type="application/json">
+  {"records":[
+    {"id":"HN-01","title":"旧接口的维护成本","a":true,"b":false,"text":"维护方解释了 API 兼容成本。"},
+    {"id":"HN-02","title":"关于社区规则的讨论","a":true,"b":false,"text":"用户提出两条版规修改建议。"},
+    {"id":"HN-03","title":"公开索引的读写策略","a":true,"b":true,"text":"文章同时覆盖读取和增量写入。"},
+    {"id":"HN-04","title":"空缓存的实验","a":true,"b":true,"text":"带有可复用的复现实验。"},
+    {"id":"HN-05","title":"发布质量的对照方法","a":true,"b":true,"text":"描述了按环境分组的基线。"},
+    {"id":"HN-06","title":"如何迁移搜索索引","a":false,"b":true,"text":"本文先说明迁移窗口，再逐条解释重建与回退的顺序。原始文本含有字面标记 \u003c/script>，应作为正文显示。","long":true},
+    {"id":"HN-07","title":"压测指标与回放","a":false,"b":true,"text":"回放内容解释了为什么要保留分位数。"},
+    {"id":"HN-08","title":"没有上下文的单句","a":false,"b":false,"text":"这个……不如算了。"},
+    {"id":"HN-09","title":"重复标题","a":false,"b":false,"text":"只重复了已有标题。"},
+    {"id":"HN-10","title":"等待补分","a":null,"b":true,"text":"论坛规则输出缺失，不能加入共同可比样本。"},
+    {"id":"HN-11","title":"常见备份故障","a":false,"b":true,"text":"列出磁盘不足时的诊断与恢复步骤。"},
+    {"id":"HN-12","title":"指标聚合的注意事项","a":false,"b":true,"text":"说明计数、比率以及异常值口径。"},
+    {"id":"HN-13","title":"给开发者的访问审计说明","a":false,"b":true,"text":"说明如何阅读访问日志与故障提示。"},
+    {"id":"HN-14","title":"迁移工具更新记录","a":false,"b":true,"text":"维护者公布新版本的兼容范围与回滚方法。"}
+  ]}
+  </script>
+  <script>
+  // BEGIN INLINE VENN GEOMETRY (from scripts/chart-data.mjs)
+function vennGeometry({ a, b, intersection }, { width = 360, height = 216, padding = 12, minRadius = 2 } = {}) {
+  const unavailable = reason => ({ ok:false, reason });
+  if (![a,b,intersection].every(n => Number.isSafeInteger(n) && n >= 0) || intersection > Math.min(a,b)) {
+    return unavailable('invalid-counts');
+  }
+  if (a === 0 || b === 0) return unavailable('empty-set');
+  if (![width,height,padding,minRadius].every(Number.isFinite) || padding < 0 || minRadius < 0 ||
+      width <= 2 * padding || height <= 2 * padding) return unavailable('invalid-frame');
+
+  function lens(r, s, d) {
+    if (d >= r + s) return 0;
+    if (d <= Math.abs(r - s)) return Math.PI * Math.min(r,s) ** 2;
+    const x = (d + (r - s) * (r + s) / d) / 2;
+    function segment(radius, signedOffset) {
+      const c = Math.max(-1, Math.min(1, signedOffset / radius));
+      return radius ** 2 * (Math.acos(c) - c * Math.sqrt(Math.max(0, 1 - c * c)));
+    }
+    return segment(r,x) + segment(s,d - x);
+  }
+
+  const base = Math.max(a,b);
+  const ra = Math.sqrt(a / base), rb = Math.sqrt(b / base);
+  let distance, relation;
+  if (intersection === 0) {
+    distance = ra + rb + .22;
+    relation = 'disjoint';
+  } else if (intersection === Math.min(a,b)) {
+    distance = Math.abs(ra - rb);
+    relation = a === b ? 'identical' : 'contained';
+  } else {
+    let low = Math.abs(ra - rb), high = ra + rb;
+    const target = Math.PI * (intersection / base);
+    for (let i = 0; i < 72; i++) {
+      const mid = (low + high) / 2;
+      if (lens(ra,rb,mid) > target) low = mid;
+      else high = mid;
+    }
+    distance = (low + high) / 2;
+    relation = 'partial';
+  }
+  const left = Math.min(-ra, distance - rb), right = Math.max(ra, distance + rb);
+  const scale = Math.min((width - 2 * padding) / (right - left),
+                         (height - 2 * padding) / (2 * Math.max(ra,rb)));
+  const x = (width - (right - left) * scale) / 2 - left * scale;
+  const circles = {
+    a:{ cx:x, cy:height / 2, r:ra * scale },
+    b:{ cx:x + distance * scale, cy:height / 2, r:rb * scale },
+  };
+  if (Math.min(circles.a.r,circles.b.r) < minRadius) return unavailable('too-small');
+  // Validate the actual output coordinates, including exclusive slivers.
+  const areaPerCount = Math.PI * scale ** 2 / base;
+  const areaA = Math.PI * circles.a.r ** 2, areaB = Math.PI * circles.b.r ** 2;
+  const shared = lens(circles.a.r, circles.b.r, Math.abs(circles.b.cx - circles.a.cx));
+  const targets = [a,b,intersection,a - intersection,b - intersection];
+  const measured = [areaA,areaB,shared,areaA - shared,areaB - shared].map(area => area / areaPerCount);
+  const tolerance = n => 1e-6 * Math.max(1,n);
+  if (measured.some((n,i) => !Number.isFinite(n) || Math.abs(n - targets[i]) > tolerance(targets[i]))) {
+    return unavailable('area-not-verifiable');
+  }
+  return { ok:true, circles, areaPerCount, relation };
+}
+  // END INLINE VENN GEOMETRY
+  (() => {
+    const $ = id => document.getElementById(id);
+    const fallback = $('report-fallback'), error = $('report-error'), tabs = [...document.querySelectorAll('[role="tab"]')];
+    const method = $('method'), nav = document.querySelector('[role="tablist"]'), overview = $('overview');
+    const evidenceButtons = [...overview.querySelectorAll('button[data-segment]')];
+    const fail = reason => {
+      for (const btn of evidenceButtons) btn.hidden = true;
+      $('venn-figure').hidden = true; $('venn-message').hidden = false;
+      nav.hidden = true; $('theme').hidden = true; $('detail').hidden = true;
+      $('drawer').close(); overview.hidden = false; method.hidden = false;
+      fallback.hidden = false; error.hidden = false;
+      error.textContent = '报告交互暂不可用。请查看下方统计口径或重新生成报告。原因：' + (reason?.message || reason || '未知错误');
+    };
+    window.addEventListener('error', e => fail(e.error || e.message));
+    window.addEventListener('unhandledrejection', e => fail(e.reason));
+    try {
+      const { records } = JSON.parse($('report-data').textContent);
+      const labels = { all:'全部样本', a:'仅论坛保留', both:'两路都保留', b:'仅网页保留', neither:'两路都不保留', unknown:'缺失结果' };
+      const classify = r => r.a == null || r.b == null ? 'unknown' : r.a && r.b ? 'both' : r.a ? 'a' : r.b ? 'b' : 'neither';
+      const populations = new Map();
+      for (const record of records) {
+        if ([record.a,record.b].some(flag => flag != null && typeof flag !== 'boolean')) {
+          throw new Error('规则结果不是布尔值：' + record.id);
+        }
+        const key = classify(record);
+        if (!populations.has(key)) populations.set(key, []);
+        populations.get(key).push(record);
+      }
+      const number = key => (populations.get(key) || []).length;
+      const recordById = new Map(records.map(record => [record.id, record]));
+      if (records.length !== recordById.size) throw new Error('记录 ID 不唯一');
+      let segment = 'all', page = 1, lastPage = 1, origin, opener;
+      const drawer = $('drawer'), search = $('search');
+      const state = b => b == null ? '未打分' : b ? '保留' : '不保留';
+      const activate = (name, focus) => {
+        tabs.forEach(tab => {
+          const id = tab.getAttribute('aria-controls'), selected = id === name;
+          tab.setAttribute('aria-selected', String(selected));
+          tab.tabIndex = selected ? 0 : -1;
+          $(id).hidden = !selected;
+        });
+        if (focus) focus.focus();
+      };
+      tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => activate(tab.getAttribute('aria-controls')));
+        tab.addEventListener('keydown', event => {
+          const delta = { ArrowLeft:-1, ArrowRight:1 }[event.key];
+          if (delta == null && !['Home','End'].includes(event.key)) return;
+          event.preventDefault();
+          const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (i + delta + tabs.length) % tabs.length;
+          activate(tabs[index].getAttribute('aria-controls'), tabs[index]);
+        });
+      });
+      function render() {
+        const base = segment === 'all' ? records : populations.get(segment) || [];
+        const query = search.value.trim().toLowerCase();
+        const hits = base.filter(r => (r.id + ' ' + r.title + ' ' + r.text).toLowerCase().includes(query));
+        lastPage = Math.max(1, Math.ceil(hits.length / 4)); page = Math.min(page, lastPage);
+        $('scope').textContent = labels[segment];
+        $('matches').textContent = '匹配 ' + hits.length + ' / 当前范围 ' + base.length + ' 条；报告总计 ' + records.length + ' 条。';
+        $('page').textContent = page + ' / ' + lastPage;
+        $('prev').disabled = page <= 1; $('next').disabled = page >= lastPage;
+        $('return').hidden = !origin;
+        const nodes = hits.slice((page - 1) * 4, page * 4).map(r => {
+          const row = document.createElement('div'), intro = document.createElement('div'), button = document.createElement('button');
+          const title = document.createElement('strong'), description = document.createElement('div');
+          row.className = 'row'; row.dataset.recordId = r.id;
+          title.textContent = r.title;
+          description.className = 'muted'; description.textContent = r.id + ' · ' + labels[classify(r)];
+          button.type = 'button'; button.textContent = '查看详情 →';
+          button.setAttribute('aria-label', r.id + ' ' + r.title + '，查看详情');
+          button.addEventListener('click', () => openRecord(recordById.get(r.id), button));
+          intro.append(title, description); row.append(intro, button);
+          return row;
+        });
+        if (!nodes.length) {
+          const empty = document.createElement('p'); empty.textContent = '没有符合条件的样本。可清空筛选。'; nodes.push(empty);
+        }
+        $('rows').replaceChildren(...nodes);
+      }
+      function openRecord(record, trigger) {
+        opener = trigger;
+        $('drawer-title').textContent = record.title;
+        $('drawer-context').textContent = record.id + ' · ' + labels[classify(record)];
+        $('drawer-scores').textContent = '论坛：' + state(record.a) + ' · 网页：' + state(record.b);
+        $('drawer-text').textContent = record.text + (record.long ? '\n\n' + Array.from({length:34}, (_, i) => '第 ' + (i + 1) + ' 段：保留完整证据，在长正文滚动时标题和关闭操作仍可使用。').join('\n\n') : '');
+        drawer.showModal(); $('drawer-title').focus(); $('drawer-body').scrollTop = 0;
+      }
+      $('drawer-close').addEventListener('click', () => drawer.close());
+      let backdropStart = null;
+      const onBackdrop = event => {
+        if (event.target !== drawer) return false;
+        const { left,right,top,bottom } = drawer.getBoundingClientRect();
+        return event.clientX < left || event.clientX >= right || event.clientY < top || event.clientY >= bottom;
+      };
+      const moved = event => Math.hypot(event.clientX - backdropStart.x, event.clientY - backdropStart.y) > 8;
+      drawer.addEventListener('pointerdown', event => {
+        backdropStart = event.isPrimary && event.button === 0 && onBackdrop(event) ?
+          { id:event.pointerId, x:event.clientX, y:event.clientY } : null;
+      });
+      drawer.addEventListener('pointermove', event => {
+        if (backdropStart?.id === event.pointerId && (!onBackdrop(event) || moved(event))) backdropStart = null;
+      });
+      drawer.addEventListener('pointercancel', () => { backdropStart = null; });
+      drawer.addEventListener('click', event => {
+        const dismiss = backdropStart && event.detail > 0 && onBackdrop(event) && !moved(event);
+        backdropStart = null;
+        if (dismiss) drawer.close();
+      });
+      drawer.addEventListener('close', () => {
+        backdropStart = null;
+        if (nav.hidden) return;
+        if (opener?.isConnected && opener.getClientRects().length) opener.focus();
+        else $('detail-heading').focus();
+      });
+      $('return').addEventListener('click', () => activate('overview', origin || $('tab-overview')));
+      $('clear').addEventListener('click', () => { segment = 'all'; search.value = ''; page = 1; render(); });
+      search.addEventListener('input', () => { page = 1; render(); });
+      for (const [id, n] of [['prev',-1],['next',1]]) $(id).addEventListener('click', () => {
+        page += n; render();
+        if ($(id).disabled) $('detail-heading').focus();
+      });
+      for (const cell of overview.querySelectorAll('[data-total]')) {
+        if (Number(cell.textContent) !== number(cell.dataset.total)) throw new Error('静态统计与原始记录不一致');
+      }
+      const openSegment = (key, trigger) => {
+        if (!number(key)) return;
+        origin = trigger; segment = key; page = 1; search.value = '';
+        render(); activate('detail', $('detail-heading'));
+      };
+      for (const button of evidenceButtons) {
+        const key = button.dataset.segment, count = number(key);
+        const inChart = button.classList.contains('region');
+        button.textContent = inChart ? labels[key] + ' · ' + count + ' 条 ↗' : '查看 ' + count + ' 条 →';
+        button.setAttribute('aria-label', labels[key] + '，查看 ' + count + ' 条');
+        button.setAttribute('aria-controls', 'detail');
+        button.disabled = count === 0; button.hidden = inChart && count === 0;
+        button.addEventListener('click', () => openSegment(key, button));
+      }
+      const counts = { a:number('a') + number('both'), b:number('b') + number('both'), intersection:number('both') };
+      const geo = vennGeometry(counts);
+      if (geo.ok) {
+        const diagram = $('venn-diagram');
+        for (const mark of diagram.querySelectorAll('[data-geometry]')) {
+          const geometry = geo.circles[mark.dataset.geometry];
+          for (const [key, value] of Object.entries(geometry)) mark.setAttribute(key, value);
+        }
+        const { a,b } = geo.circles;
+        const aMin = a.cx - a.r, aMax = a.cx + a.r, bMin = b.cx - b.r, bMax = b.cx + b.r;
+        const overlapMin = Math.max(aMin,bMin), overlapMax = Math.min(aMax,bMax);
+        const spans = geo.relation === 'disjoint' ? { a:[aMin,aMax], b:[bMin,bMax] } :
+          { a:[aMin,overlapMin], both:[overlapMin,overlapMax], b:[overlapMax,bMax] };
+        for (const label of diagram.querySelectorAll('[data-label]')) {
+          const key = label.dataset.label, count = number(key), span = spans[key];
+          // Tight space never changes the circle fit; its count stays in the controls and table.
+          if (!count || !span || span[1] - span[0] < String(count).length * 12 + 10) continue;
+          label.setAttribute('x', (span[0] + span[1]) / 2);
+          label.setAttribute('y', a.cy);
+          label.textContent = String(count);
+        }
+        for (const part of diagram.querySelectorAll('[data-hit]')) {
+          const key = part.dataset.hit;
+          if (!number(key)) {
+            part.style.pointerEvents = 'none';
+          } else {
+            const control = evidenceButtons.find(btn => btn.classList.contains('region') && btn.dataset.segment === key);
+            part.addEventListener('click', () => openSegment(key, control));
+          }
+        }
+        $('venn-caption').textContent = '实线：论坛 ' + counts.a + ' 条；虚线：网页 ' + counts.b +
+          ' 条；重叠 ' + counts.intersection + ' 条。填色面积按实际条数成比例。';
+        $('venn-message').hidden = true; $('venn-figure').hidden = false;
+      } else {
+        const reasons = { 'empty-set':'有规则保留了 0 条', 'too-small':'集合大小差距过大，圆形难以辨认',
+          'invalid-counts':'计数与交集口径不一致', 'area-not-verifiable':'不能确认各区域面积精度' };
+        $('venn-message').textContent = (reasons[geo.reason] || '无法按当前画布准确展示') +
+          '，改用交集表；点击表格可照常查看样本。';
+      }
+      const root = document.documentElement, theme = $('theme'), system = matchMedia('(prefers-color-scheme: dark)');
+      const themeKey = 'example-screening-report:theme';
+      try {
+        const value = localStorage.getItem(themeKey);
+        if (value === 'light' || value === 'dark') root.dataset.theme = value;
+      } catch {}
+      theme.hidden = false;
+      theme.addEventListener('click', () => {
+        const current = root.dataset.theme || (system.matches ? 'dark' : 'light');
+        root.dataset.theme = current === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem(themeKey, root.dataset.theme); } catch {}
+      });
+      render(); activate('overview'); nav.hidden = false; fallback.hidden = true;
+      document.body.dataset.ready = 'true';
+    } catch (reason) { fail(reason); }
+  })();
+  </script>
+</body>
+</html>

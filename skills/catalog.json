@@ -20,6 +20,17 @@
     "collection": "personal"
   },
   {
+    "name": "HTML 报告仪表盘",
+    "nameEn": "HTML Report Dashboard",
+    "description": "把数据分析做成能离线打开的交互报告。按问题选择图表，从汇总数字下钻到原始记录，并用随附工具核对图表、筛选和明细。",
+    "descriptionEn": "Build offline HTML reports with charts chosen for the question. Drill from totals into source records and check charts, filters and detail views with the included tools.",
+    "file": "html-report-dashboard.zip",
+    "cover": "html-report-dashboard.webp",
+    "guide": "html-report-dashboard",
+    "guideLanguage": "en",
+    "collection": "personal"
+  },
+  {
     "name": "Skill Creator",
     "nameEn": "Skill Creator",
     "description": "OpenAI 的 Codex Skill 编写指南。用随附的 Python 工具创建 Skill 目录、生成界面信息，并检查说明文件的格式。",

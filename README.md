@@ -1,12 +1,44 @@
-# Galok’s Index
+<a href="https://galok.cn/"><img src="home/brand/galok.svg" width="72" height="72" alt="Galok Logo"></a>
 
-[个人主页](https://galok.cn/) 收录站点预览与最新文章。[文章](https://galok.cn/articles/) 按日期倒序排列。[Skills 下载库](https://galok.cn/skills/) 分为个人和引用两个标签页。[Galok’s World](https://galok.cn/world/) 是第一人称海岛住宅，[Galok’s Sea](https://galok.cn/sea/) 是海上浮岛。
+# Galok's Index
 
-GitHub Pages 从 `main` 的仓库根目录构建 Jekyll 静态站点。首页在 `index.html`，共用导航在 `_layouts/index-shell.html`，站点预览在 `home/previews/`。添加下载文件见 [Skills 目录](skills/README.md)。
+> 放弃对技术的执着，改向对知识的着迷
 
-## 发布 Markdown 文章
+Galok's Index 是 Galok 的个人主页。这里收录我做的网站、写下的文章，以及日常使用的 Skills。首页用真实页面截图做预览，点进卡片就能访问对应项目。你可以在海景房里漫游，读一篇训练实验笔记，也可以带走一套做离线报告的工具。
 
-在 `_posts/` 添加 `YYYY-MM-DD-short-title.md`，文件名末段使用稳定的文章短名。以下示例会发布到 `/articles/short-title/`。
+[访问首页](https://galok.cn/) · [阅读文章](https://galok.cn/articles/) · [浏览个人 Skills](https://galok.cn/skills/) · [查看引用 Skills](https://galok.cn/skills/referenced/)
+
+[![Galok 首页、海岛插画，以及 World 和 Sea 的站点预览](docs/images/index.webp)](https://galok.cn/)
+
+## 从哪里开始
+
+| 入口 | 可以做什么 |
+| --- | --- |
+| [Galok's World](https://galok.cn/world/) | 以第一人称走进海景房，推窗看海，也可以出门驾船环岛。 |
+| [Galok's Sea](https://galok.cn/sea/) | 在海上浮岛之间探索，看海水、昼夜、雷雨与星河变化。 |
+| [文章](https://galok.cn/articles/) | 按日期阅读技术笔记。长文带章节目录，交互指南可在正文里查看图表、调整参数和下载案例数据。 |
+| [Skills](https://galok.cn/skills/) | 在个人库下载可复用的 Skill 及配套文件，点「使用说明」查看用法。引用库另列收录工具及其来源。 |
+
+首页、文章和 Skills 共用中英文导航与深浅主题，支持手机、平板和桌面阅读。文章正文保留原稿语言。
+
+| [Ladder 实验指南](https://galok.cn/articles/ladder-experiments/) | [HTML 报告仪表盘](https://galok.cn/skills/html-report-dashboard.zip) |
+| --- | --- |
+| [![文章中的目录和五档模型分差图](docs/images/reader.webp)](https://galok.cn/articles/ladder-experiments/) | [![个人 Skill 卡片上的报告示例、ZIP 下载和使用说明](docs/images/report-skill.webp)](https://galok.cn/skills/) |
+
+## 给站点添加内容
+
+仓库中的维护 Skills 放在 `.agents/skills/`。在这个仓库里使用 Agent 时，可以直接提供网址、文档或压缩包，并点名对应的 Skill。
+
+| 要做的事 | 调用示例 | 维护位置 |
+| --- | --- | --- |
+| 首页添加站点 | 「用 `$add-index-site` 把这个网址加到首页，并制作预览。」 | `index.html` 中的站点卡和 `home/previews/`。[站点上架流程](.agents/skills/add-index-site/SKILL.md) |
+| 个人库添加或更新 Skill | 「用 `$add-personal-skill` 上架这个 ZIP，附中英文简介和使用说明。」 | `skills/catalog.json`、下载包、封面和 `skills/_sources/`。[个人 Skill 上架流程](.agents/skills/add-personal-skill/SKILL.md) |
+| 发布完整 HTML 文章 | 「用 `$import-html-article` 完整迁入这份报告，核对全文、图表和交互。」 | `_posts/` 和文章专属资源。[HTML 文章迁移流程](.agents/skills/import-html-article/SKILL.md) |
+| 维护引用 Skill | 「用 `$maintain-galok-content` 收录这个上游 Skill，并标注来源。」 | [站点维护说明](.agents/skills/maintain-galok-content/SKILL.md)与[下载清单字段](skills/README.md) |
+
+### 发布 Markdown 文章
+
+在 `_posts/` 新建 `YYYY-MM-DD-short-title.md`。文件名末段会成为稳定地址 `/articles/short-title/`。
 
 ```markdown
 ---
@@ -21,16 +53,17 @@ description: "一两句介绍文章内容。"
 这里可以使用列表、表格、链接和围栏代码块。
 ```
 
-标题写在文件头。可选的 `title_en` 和 `description_en` 用于英文导航界面，正文保留原文语言（默认为中文，英文稿可加 `language: en`）。需要列表封面时，将图片放在 `articles/` 并设置 `cover: /articles/文件名.webp`。推送该 Markdown 后，Pages 自动生成独立阅读页、文章列表、首页最近三篇和站点地图。两节及以上的文章会从二级标题生成目录。
+英文界面的标题和摘要用 `title_en`、`description_en`。英文正文可加 `language: en`。需要列表封面时，把图片放在 `articles/`，在文件头填写 `cover: /articles/文件名.webp`。发布后 Jekyll 会更新正文页、文章列表、首页最近三篇和站点地图，两节及以上的普通文章会从二级标题生成目录。
 
-收到 HTML 原稿时，可让 Agent 使用 `$import-html-article` 把全文、公式、表格和交互迁入 Markdown 文章页，并对照原稿检查构建结果。[HTML 文章迁移 Skill](.agents/skills/import-html-article/SKILL.md)
+## 本地预览与部署
 
-## 本地预览
+项目使用 Jekyll、原生 HTML/CSS/JavaScript 和 GitHub Pages。安装 Ruby 和 Bundler 后，在仓库根目录运行：
 
-安装 Ruby 和 Bundler 后在仓库根目录运行 `bundle install`，再运行 `bundle exec jekyll serve`，打开 `http://localhost:4000/`。预览包含与发布页相同的 Markdown 和模板处理。
+```sh
+bundle install
+bundle exec jekyll serve
+```
 
-在本仓库中可用 `$maintain-galok-content` 添加站点卡片和 Skill 下载。[站点内容维护 Skill](.agents/skills/maintain-galok-content/SKILL.md)
+打开 [本地预览](http://localhost:4000/)。共用导航在 `_layouts/index-shell.html`，文章模板在 `_layouts/reading.html`。推送到 `main` 后，GitHub Pages 从仓库根目录构建并发布到 [galok.cn](https://galok.cn/)。
 
-住宅源码在 `villa/`。修改住宅后，在该目录执行 `npm ci` 和 `npm run build:pages`，提交源码和生成的 `world/`。
-
-[住宅开发说明](villa/README.md) · [海上浮岛开发说明](sea/README.md)
+海景房源码在 `villa/`，生成的静态文件在 `world/`。修改住宅后，在 `villa/` 运行 `npm ci`、`npm run build:pages`，并提交源码与构建产物。[住宅开发说明](villa/README.md) · [海上浮岛开发说明](sea/README.md)
