@@ -1,0 +1,4 @@
+interface:
+  display_name: "动画创作工坊"
+  short_description: "从动作分镜到逐帧渲染，为影片、动态图形与网页动效制作可复现的动画。"
+  default_prompt: "使用 $craft-animation，把我的想法做成动画，先用关键帧验证动作，再导出适合目标平台的成品。"

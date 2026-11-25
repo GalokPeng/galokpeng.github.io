@@ -1,5 +1,16 @@
 [
   {
+    "name": "动画创作工坊",
+    "nameEn": "Animation Workshop",
+    "description": "把想法做成可以播放、逐帧修改的动画。从动作分镜到声音同步和网页循环，附可运行的机械绘图机与日食样例。",
+    "descriptionEn": "Turn an idea into an animation you can play and revise frame by frame. Plan motion, sync sound and export web loops with working drawing-machine and eclipse scenes.",
+    "file": "craft-animation.zip",
+    "cover": "craft-animation.webp",
+    "guide": "craft-animation",
+    "guideLanguage": "zh",
+    "collection": "personal"
+  },
+  {
     "name": "网页交互桌面",
     "nameEn": "Build a Browser Desktop",
     "description": "把桌面软件做成可在线试用的网页。附带可运行的色卡画板，用来练习窗口拖动、撤销、录屏和 PNG 导出。",
