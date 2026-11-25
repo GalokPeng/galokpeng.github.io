@@ -10,7 +10,16 @@ description_en: Explore Galok's island worlds, writing and skill library.
   <div><h1 id="title" lang="en">Galok’s Index.</h1>
     <p data-en="From a fixation on technology to a fascination with knowledge.">放弃对技术的执着，改向对知识的着迷</p>
   </div>
-  <img class="island-print" src="/home/island-print.webp" srcset="/home/island-print-small.webp 576w, /home/island-print.webp 1152w" sizes="(max-width: 640px) 100vw, 55vw" width="1152" height="480" alt="" fetchpriority="high">
+  <div class="ink-hero">
+    <input id="still-logo" class="ink-check" type="checkbox">
+    <label for="still-logo" class="ink-toggle" data-en="Still image">静态图</label>
+    <picture class="ink-art">
+      <source media="(prefers-reduced-motion: reduce)" srcset="/home/ink/glass.webp">
+      <source type="image/avif" media="(max-width: 900px)" srcset="/home/ink/drops-768.avif">
+      <source type="image/avif" srcset="/home/ink/drops-960.avif 1x, /home/ink/drops-1280.avif 2x">
+      <img src="/home/ink/drops.webp" width="1280" height="720" alt="" decoding="async" fetchpriority="high">
+    </picture>
+  </div>
 </section>
 <section id="sites" class="home-section" aria-labelledby="sites-title">
   <div class="section-head"><h2 id="sites-title" data-en="Sites">站点</h2></div>

@@ -40,7 +40,6 @@
   --wash-hover: #304357;
   --chart-warm: #efb18a;
 }
-:root[data-theme="dark"] .island-print { mix-blend-mode: screen; filter: invert(1) grayscale(1); }
 :root[data-theme="dark"] .wordmark img { filter: brightness(1.7); }
 * { box-sizing: border-box; }
 html { scroll-padding-top: 1rem; }
@@ -110,11 +109,33 @@ h1, h2, h3, p { margin: 0; }
   letter-spacing: -.045em;
 }
 .intro p { max-width: 34ch; margin-top: 1.05rem; color: var(--muted); font-size: clamp(.98rem, 1.25vw, 1.14rem); }
-.island-print {
-  width: 100%; height: auto; display: block; mix-blend-mode: multiply;
-  filter: brightness(1.04);
-  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent), linear-gradient(transparent, #000 10%, #000 92%, transparent);
-  mask-composite: intersect;
+.ink-hero { position: relative; width: 100%; }
+.ink-art {
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 7px;
+  background: #e7eeec url("ink/water.webp") center / cover;
+}
+.ink-art img { display: block; width: 100%; height: auto; }
+.ink-check { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+.ink-toggle {
+  position: absolute; z-index: 1; right: 0; bottom: 0;
+  display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; padding-inline: .5rem;
+  color: var(--ink); font-size: .78rem; cursor: pointer;
+  background: var(--paper) padding-box; border: 8px solid transparent; border-radius: 2rem;
+}
+.ink-toggle::before { content: ""; width: .68rem; height: .68rem; border: 1px solid currentColor; border-radius: 50%; }
+.ink-check:checked + .ink-toggle::before { background: var(--blue); }
+.ink-check:focus-visible + .ink-toggle { outline: 2px solid var(--blue); outline-offset: 1px; }
+.ink-check:checked ~ .ink-art { background-image: url("ink/glass.webp"); }
+.ink-check:checked ~ .ink-art img { display: none; }
+@media (hover: hover) {
+  .ink-hero:not(:hover):not(:focus-within) .ink-toggle { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ink-art { background: var(--paper); }
+  .ink-check, .ink-toggle { display: none; }
 }
 .home-section { padding-bottom: clamp(2.4rem, 6vw, 4.75rem); }
 .section-head {
@@ -154,7 +175,7 @@ time { color: var(--muted); font-size: .89rem; font-variant-numeric: tabular-num
   .intro { grid-template-columns: 1fr; gap: .75rem; padding-block: 2rem 1.4rem; }
   .intro h1 { font-size: clamp(3.7rem, 13.5vw, 5rem); }
   .intro p { margin-top: .6rem; }
-  .island-print { width: min(100%, 31rem); justify-self: center; }
+  .ink-hero { width: min(100%, 31rem); justify-self: center; }
   .article-list a { grid-template-columns: minmax(0, 1fr) auto; gap: .45rem .8rem; }
   .article-list time { grid-column: 1 / -1; }
 }

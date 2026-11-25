@@ -8,7 +8,9 @@ Galok's Index 是 Galok 的个人主页。这里收录我做的网站、写下�
 
 [访问首页](https://galok.cn/) · [阅读文章](https://galok.cn/articles/) · [浏览个人 Skills](https://galok.cn/skills/) · [查看引用 Skills](https://galok.cn/skills/referenced/) · [浏览开源项目](https://galok.cn/open-source/)
 
-[![Galok 首页、海岛插画，以及 World 和 Sea 的站点预览](docs/images/index.webp)](https://galok.cn/)
+[![Galok 首页的玻璃 Logo，以及 World 和 Sea 的站点预览](docs/images/index.webp)](https://galok.cn/)
+
+首页顶部的滴染动画以 HTML `picture` 静音循环。宽度 900 像素以内使用 768 像素、30 帧动画。更宽的视口按屏幕像素密度选择 960 或 1280 像素、60 帧版本。三档均为 AVIF，另有动画 WebP 供兼容使用。启用系统「减少动态效果」时直接显示玻璃 Logo，也可以在图上手动切到静态图。[首页动画素材](home/ink/)
 
 ## 从哪里开始
 
