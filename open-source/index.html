@@ -1,0 +1,36 @@
+---
+layout: index-shell
+section: open-source
+title: 开源项目
+title_en: Open source
+description: 浏览 Galok 开发的开源项目，查看源码、试玩游戏或下载应用。
+description_en: Explore Galok’s open-source projects. Browse the code, play a game, or download an app.
+---
+<header class="page-heading oss-heading">
+  <h1 data-en="Open source">开源项目</h1>
+  <a class="oss-profile" href="https://github.com/GalokPeng" lang="en">github.com/GalokPeng <span aria-hidden="true">↗</span></a>
+</header>
+
+<div class="oss-grid">
+  {% for project in site.data.open_source %}
+  <article class="oss-project{% if project.featured %} oss-featured{% endif %}{% unless project.preview %} oss-text-only{% endunless %}">
+    {% if project.preview %}
+    <div class="oss-preview">
+      <img src="{{ project.preview | prepend: '/open-source/previews/' | relative_url | escape }}" alt="" {% unless forloop.first %}loading="lazy"{% endunless %} decoding="async">
+    </div>
+    {% endif %}
+    <div class="oss-details">
+      {% if project.category %}<p class="oss-category" data-en="{{ project.category_en | escape }}">{{ project.category | escape }}</p>{% endif %}
+      <h2 data-en="{{ project.name_en | escape }}">{{ project.name | escape }}</h2>
+      <p class="oss-description" data-en="{{ project.description_en | escape }}">{{ project.description | escape }}</p>
+      {% if project.stack %}<ul class="oss-stack" aria-label="技术栈" data-en-label="Technology stack">{% for tech in project.stack %}<li>{{ tech | escape }}</li>{% endfor %}</ul>{% endif %}
+      <div class="oss-actions">
+        {% if project.action %}
+        <a class="oss-primary" href="{{ project.action.url | escape }}"><span data-en="{{ project.action.label_en | escape }}">{{ project.action.label | escape }}</span><span aria-hidden="true">↗</span></a>
+        {% endif %}
+        <a class="oss-source" href="{{ project.repository | escape }}" aria-label="{{ project.name | escape }} 的 GitHub 仓库" data-en-label="{{ project.name_en | default: project.name | escape }} on GitHub"><span data-en="Source code">查看源码</span><span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</div>

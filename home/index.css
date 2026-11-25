@@ -175,3 +175,6 @@ time { color: var(--muted); font-size: .89rem; font-variant-numeric: tabular-num
 }
 
 @media (max-width: 370px) { .utilities { gap: .35rem; font-size: .78rem; } }
+@media (max-width: 400px) {
+  .headline nav { flex-wrap: wrap; gap: 0 clamp(.65rem, 3vw, 1rem); }
+}

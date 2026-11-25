@@ -1,6 +1,6 @@
 ---
 name: maintain-galok-content
-description: 在 GalokPeng/galokpeng.github.io 中发布 Markdown 文章、维护首页站点预览、个人 Skill 下载和带来源的引用 Skill，以及它们的中英文内容。
+description: 在 GalokPeng/galokpeng.github.io 中发布 Markdown 文章、维护开源项目目录、首页站点预览、个人 Skill 下载和带来源的引用 Skill，以及它们的中英文内容。
 ---
 
 # 维护 Galok 站点内容
@@ -16,6 +16,10 @@ description: 在 GalokPeng/galokpeng.github.io 中发布 Markdown 文章、维�
 
 - 引用条目使用经核实的上游仓库、完整提交 SHA 和子目录。按 `skills/README.md` 填写 `source`，保留上游许可与声明。打包时使 ZIP 顶层为 Skill 目录，并核对解压后的文件与该提交一致。包内许可、说明与卡片来源链接应对应同一份快照。
 - 本仓库自己的维护工具位于 `.agents/skills/`。公开下载库只展示清单里登记的文件。
+
+## 开源项目
+
+阅读用户给出的仓库 README，核对项目名称、功能和体验或下载入口。在 `_data/open_source.yml` 按[新增示例](../../../README.md#添加开源项目)追加或更新对应仓库。使用可公开展示的项目截图时，将 WebP 放入 `open-source/previews/`，记录来源。构建后从首页导航进入 `/open-source/`，验证中英文卡片、预览和外链。
 
 ## 发布文章
 

@@ -1,0 +1,42 @@
+- name: 断层回声
+  name_en: Fault Line Echoes
+  category: 第一人称冒险
+  category_en: First-person adventure
+  description: 雨后的白砥城多响了一声闸钟。走进山间城镇，沿河谷追查这声钟响，也可以用仓库里的世界构建 Skill 创作自己的冒险。
+  description_en: After the rain, the gate bell rings one time too many. Follow its echo through a mountain town and down the valley, or build an adventure of your own with the included worldbuilding skill.
+  repository: https://github.com/GalokPeng/Fault-Line-Echoes
+  preview: fault-line-echoes.webp
+  featured: true
+  stack: [Three.js, Rapier]
+  action:
+    url: https://fault-line-echoes.vercel.app/
+    label: 在线试玩
+    label_en: Play in browser
+
+- name: LoveShare 导航
+  name_en: LoveShare
+  category: 资源导航
+  category_en: Link directory
+  description: 把散落的书签整理成一座可搜索的网址目录。按主题分类、置顶常用链接，再用卡片、列表或表格分享给别人。
+  description_en: Turn scattered bookmarks into a searchable directory. Group links by topic, pin your favorites, and share the collection as cards, a list, or a table.
+  repository: https://github.com/GalokPeng/LoveShare
+  preview: love-share.webp
+  stack: [React, TypeScript, Supabase]
+  action:
+    url: https://github.com/GalokPeng/LoveShare#快速开始
+    label: 部署指南
+    label_en: Setup guide
+
+- name: 轻块桌面
+  name_en: Light Block Desktop
+  category: Windows 桌面工具
+  category_en: Windows desktop app
+  description: 把照片、GIF 或视频设成桌面壁纸，随手截图、录屏、记便签。常用工具都在这一个 Windows 应用里。
+  description_en: Set a photo, GIF, or video as your wallpaper, capture the screen, and keep a sticky note close by. These everyday tools live in one Windows app.
+  repository: https://github.com/GalokPeng/light-block-desktop
+  preview: light-block-desktop.webp
+  stack: [C++23, Qt, Win32]
+  action:
+    url: https://github.com/GalokPeng/light-block-desktop/releases
+    label: 下载 Windows 版
+    label_en: Windows releases

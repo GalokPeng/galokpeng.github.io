@@ -13,6 +13,7 @@ layout: null
     <loc>https://galok.cn/skills/</loc>
   </url>
   <url><loc>https://galok.cn/articles/</loc></url>
+  <url><loc>https://galok.cn/open-source/</loc></url>
   {% for post in site.posts %}<url>
     <loc>{{ post.url | absolute_url | xml_escape }}</loc>
     <lastmod>{{ post.date | date: '%Y-%m-%d' }}</lastmod>

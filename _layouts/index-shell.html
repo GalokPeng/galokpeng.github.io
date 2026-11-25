@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="/home/brand/apple-touch-icon.png" sizes="180x180">
   <link rel="manifest" href="/site.webmanifest">
   <script>{% include site-theme.js %}</script>
-  <link rel="stylesheet" href="/home/index.css?v=reader-2">
+  <link rel="stylesheet" href="/home/index.css?v=open-source">
   {% if page.section == 'skills' %}
   <link rel="stylesheet" href="/skills/library.css?v=reader-2">
   <script type="module" src="/skills/library.js?v=guide-language"></script>
@@ -20,6 +20,7 @@
   <script type="module" src="/home/language.js"></script>
   {% endif %}
   {% if page.section == 'articles' %}<link rel="stylesheet" href="/articles/reading.css?v=reader-2">{% endif %}
+  {% if page.section == 'open-source' %}<link rel="stylesheet" href="/open-source/projects.css">{% endif %}
   {% if page.article_css %}<link rel="stylesheet" href="{{ page.article_css | relative_url | escape }}">{% endif %}
   {% if page.section == 'sites' %}
   <meta name="google-site-verification" content="wwYQkhI3vHjQzLbLIv8aZAOjxPyctIldvmvCiEcLGao">
@@ -50,6 +51,7 @@
         <a href="/" data-site-link {% if page.section == 'sites' %}aria-current="page"{% endif %} data-en="Home">首页</a>
         <a href="/articles/" data-site-link {% if page.section == 'articles' %}aria-current="true"{% endif %} data-en="Articles">文章</a>
         <a href="/skills/" data-site-link {% if page.section == 'skills' %}aria-current="true"{% endif %}>Skills</a>
+        <a href="/open-source/" data-site-link {% if page.section == 'open-source' %}aria-current="page"{% endif %} data-en="Open source">开源</a>
       </nav>
     </div>
   </header>
