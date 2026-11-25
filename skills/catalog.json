@@ -1,5 +1,16 @@
 [
   {
+    "name": "网页数据采集",
+    "nameEn": "Web Data Collection",
+    "description": "从网页、公开 API 和历史存档中采集有出处的数据。附 Python 脚本，可按月去重抽样，并列出样本不足的月份。",
+    "descriptionEn": "Collect records from web pages, public APIs and archives with traceable sources. The included Python script selects distinct samples by month and reports gaps.",
+    "file": "web-data-collection.zip",
+    "cover": "web-data-collection.webp",
+    "guide": "web-data-collection",
+    "guideLanguage": "zh",
+    "collection": "personal"
+  },
+  {
     "name": "动画创作工坊",
     "nameEn": "Animation Workshop",
     "description": "把想法做成可以播放、逐帧修改的动画。从动作分镜到声音同步和网页循环，附可运行的机械绘图机与日食样例。",
