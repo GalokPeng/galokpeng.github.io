@@ -115,7 +115,7 @@ h1, h2, h3, p { margin: 0; }
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: 7px;
-  background: #e7eeec url("ink/water.webp") center / cover;
+  background: #e7eeec url("ink/water.webp?v=12") center / cover;
 }
 .ink-art img { display: block; width: 100%; height: auto; }
 .ink-check { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
@@ -128,12 +128,12 @@ h1, h2, h3, p { margin: 0; }
 .ink-toggle::before { content: ""; width: .68rem; height: .68rem; border: 1px solid currentColor; border-radius: 50%; }
 .ink-check:checked + .ink-toggle::before { background: var(--blue); }
 .ink-check:focus-visible + .ink-toggle { outline: 2px solid var(--blue); outline-offset: 1px; }
-.ink-check:checked ~ .ink-art { background-image: url("ink/glass.webp"); }
+.ink-check:checked ~ .ink-art { background-image: url("ink/linen.webp"); }
 .ink-check:checked ~ .ink-art img { display: none; }
 @media (hover: hover) {
   .ink-hero:not(:hover):not(:focus-within) .ink-toggle { opacity: 0; }
 }
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce) {
   .ink-art { background: var(--paper); }
   .ink-check, .ink-toggle { display: none; }
 }
