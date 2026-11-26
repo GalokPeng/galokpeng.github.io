@@ -13,7 +13,12 @@
   <link rel="manifest" href="/site.webmanifest">
   <script>{% include site-theme.js %}</script>
   <link rel="stylesheet" href="/home/index.css?v=tidepool-2">
+  {% if page.section == 'sites' %}
+  <link rel="stylesheet" href="/home/index-paper.css">
+  <script type="module" src="/home/index-paper.js" fetchpriority="low"></script>
+  {% else %}
   <script type="module" src="/home/tides.js?v=tidepool-2" fetchpriority="low"></script>
+  {% endif %}
   {% if page.section == 'skills' %}
   <link rel="stylesheet" href="/skills/library.css?v=reader-2">
   <script type="module" src="/skills/library.js?v=guide-language"></script>
@@ -35,7 +40,17 @@
   {% endif %}
 </head>
 <body id="top"{% if page.skill_collection %} data-collection="{{ page.skill_collection }}"{% endif %}>
+  {% if page.section == 'sites' %}
+  <div class="index-paper" aria-hidden="true">
+    {% for side in (1..2) %}
+    <div class="paper-fan">
+      {% for sheet in (0..10) %}<span class="paper-slip" style="--sheet: {{ sheet }}"></span>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
   <canvas class="tidal-paper{% if page.layout == 'reading' %} tidal-paper--reading{% endif %}" aria-hidden="true"></canvas>
+  {% endif %}
   <a class="skip" href="#main" data-en="Skip to content">跳到正文</a>
   <header class="masthead">
     <div class="wrap headline">

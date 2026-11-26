@@ -1,0 +1,117 @@
+/* Two fanned decks of index slips. Each sheet pivots around the same binding. */
+.index-paper {
+  --stock: #f7f7f1;
+  --grain: #7b7e8c25;
+  --leaf: #f1f1e9;
+  --shade: #c9d1e0;
+  --edge-ink: #6b7a9860;
+  --ink-rule: #5f729839;
+  --tab: #677da8;
+  --warm-tab: #bd7651;
+  --blue-tab: #496bb5;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background-color: var(--stock);
+  background-image: radial-gradient(circle, var(--grain) .55px, transparent .9px);
+  background-size: 9px 9px;
+}
+:root[data-theme="dark"] .index-paper {
+  --stock: #18202c;
+  --grain: #a6b5cc25;
+  --leaf: #252f40;
+  --shade: #354664;
+  --edge-ink: #a7badb49;
+  --ink-rule: #adbed532;
+  --tab: #8297be;
+  --warm-tab: #cc906e;
+  --blue-tab: #8ba6dc;
+}
+.paper-fan {
+  --open: 0deg;
+  --length: clamp(325px, 33vw, 570px);
+  --breadth: calc(var(--length) * .30);
+  --heading: -84deg;
+  --step: 6.1deg;
+  position: absolute;
+  width: 0;
+  height: 0;
+  left: calc(var(--length) * -.56);
+  top: 82%;
+  opacity: .86;
+}
+.paper-fan + .paper-fan {
+  --heading: 132deg;
+  --step: 4.7deg;
+  --length: clamp(380px, 35vw, 660px);
+  left: auto;
+  right: calc(var(--length) * -.47);
+  top: 12%;
+}
+.paper-slip {
+  --tint: calc(12% + var(--sheet) * 3%);
+  position: absolute;
+  top: calc(var(--breadth) * -.5);
+  width: var(--length);
+  height: var(--breadth);
+  transform-origin: 0 50%;
+  transform: rotate(calc(var(--heading) + var(--sheet) * var(--step) + (var(--sheet) - 4) * var(--open)));
+  border: 1px solid var(--edge-ink);
+  border-radius: 3px;
+  background-color: var(--leaf);
+  background-image: linear-gradient(155deg, var(--leaf) 24%, color-mix(in srgb, var(--shade) var(--tint), var(--leaf)) 92%);
+}
+/* Print on the exposed ends: a tab, then the fine ruling of a catalogue slip. */
+.paper-slip::before {
+  content: "";
+  position: absolute;
+  inset: 10% 3.5% 10% auto;
+  width: 22%;
+  border-inline-end: 1px solid var(--ink-rule);
+  background: repeating-linear-gradient(0deg, transparent 0 7px, var(--ink-rule) 7px 8px);
+}
+.paper-slip::after {
+  content: "";
+  position: absolute;
+  inset: 12% -1px auto auto;
+  width: 1.7%;
+  height: 26%;
+  background: var(--tab);
+}
+.paper-slip:nth-child(3n + 1)::before {
+  background: radial-gradient(circle, var(--edge-ink) .7px, transparent 1px) 0 0 / 4px 4px;
+}
+.paper-slip:nth-child(3n + 2)::after { background: var(--blue-tab); }
+.paper-slip:nth-child(5n + 3)::after { background: var(--warm-tab); }
+.paper-slip:nth-child(4) { background: color-mix(in srgb, var(--leaf) 66%, var(--blue-tab)); }
+.paper-slip:last-child {
+  background: var(--leaf);
+}
+.paper-slip:last-child::before {
+  inset: 15% 7% 16% auto;
+  width: 49%;
+  border-block-start: 2px solid var(--ink-rule);
+  border-inline-end: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 13px, var(--ink-rule) 13px 14px);
+}
+@media (max-width: 700px) {
+  .paper-fan {
+    --length: clamp(215px, 49vw, 320px);
+    left: calc(var(--length) * -.71);
+    top: 71%;
+    opacity: .72;
+  }
+  .paper-fan + .paper-fan {
+    --length: clamp(240px, 53vw, 360px);
+    right: calc(var(--length) * -.60);
+    top: 16%;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .paper-slip { transition: transform 380ms cubic-bezier(.23,.8,.25,1); }
+}
+@media print, (forced-colors: active) {
+  .index-paper { display: none; }
+}
