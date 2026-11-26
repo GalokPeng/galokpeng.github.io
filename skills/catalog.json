@@ -1,5 +1,16 @@
 [
   {
+    "name": "移动应用交付",
+    "nameEn": "Mobile App Delivery",
+    "description": "构建并交付 Android APK 或 iOS IPA，核对签名、升级兼容性和设备安装结果。附双平台交付指南与只读安装包检查脚本。",
+    "descriptionEn": "Build and deliver Android APKs or iOS IPAs, verify signing and upgrade compatibility, and record device tests. Includes platform guides and a read-only package inspector.",
+    "file": "mobile-app-delivery.zip",
+    "cover": "mobile-app-delivery.webp",
+    "guide": "mobile-app-delivery",
+    "guideLanguage": "zh",
+    "collection": "personal"
+  },
+  {
     "name": "网页数据采集",
     "nameEn": "Web Data Collection",
     "description": "从网页、公开 API 和历史存档中采集有出处的数据。附 Python 脚本，可按月去重抽样，并列出样本不足的月份。",

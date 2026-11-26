@@ -1,0 +1,4 @@
+interface:
+  display_name: "移动应用交付 · IPA 与 APK"
+  short_description: "从应用需求、双端开发到发布构建、签名、设备验证和安装包交付"
+  default_prompt: "使用 $mobile-app-delivery 按当前项目的需求开发或更新应用，构建所需的 IPA 和 APK，并说明签名及设备验证结果。"
