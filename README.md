@@ -32,9 +32,44 @@ Galok's Index 是 Galok 的个人主页。这里收录我做的网站、写下�
 | --- | --- |
 | [![文章中的目录和五档模型分差图](docs/images/reader.webp)](https://galok.cn/articles/ladder-experiments/) | [![个人 Skill 卡片上的报告示例、ZIP 下载和使用说明](docs/images/report-skill.webp)](https://galok.cn/skills/) |
 
+## Skill 列表
+
+### 个人 Skill
+
+点击名称可阅读使用说明，ZIP 包含完整的 Skill 和配套文件。
+
+| Skill | 用途 | 下载 |
+| --- | --- | --- |
+| [Cloudflare 卡密文件领取](skills/_sources/cloudflare-file-claims/SKILL.md) | 在自有域名发放小文件。一次性卡密兑换后可复制直链，每个文件独立设置下载次数。 | [ZIP](https://galok.cn/skills/cloudflare-file-claims.zip) |
+| [移动应用交付](skills/_sources/mobile-app-delivery/SKILL.md) | 构建 Android APK 或 iOS IPA，核对签名、升级兼容性和设备安装结果。 | [ZIP](https://galok.cn/skills/mobile-app-delivery.zip) |
+| [网页数据采集](skills/_sources/web-data-collection/SKILL.md) | 从网页、API 和存档采集带来源的数据，按月去重抽样并检查缺口。 | [ZIP](https://galok.cn/skills/web-data-collection.zip) |
+| [动画创作工坊](skills/_sources/craft-animation/SKILL.md) | 从分镜、动作和声音同步到逐帧调整，导出可在网页循环播放的动画。 | [ZIP](https://galok.cn/skills/craft-animation.zip) |
+| [网页交互桌面](skills/_sources/build-browser-desktop/SKILL.md) | 把桌面软件做成可在浏览器试用的交互演示，附色卡画板示例。 | [ZIP](https://galok.cn/skills/build-browser-desktop.zip) |
+| [软件产品全链路交付](skills/_sources/ship-software-product/SKILL.md) | 规划开发、测试、打包和上线，核对发布附件、安装包与商店送审材料。 | [ZIP](https://galok.cn/skills/ship-software-product.zip) |
+| [HTML 报告仪表盘](skills/_sources/html-report-dashboard/SKILL.md) | 制作可离线阅读的交互报告，从汇总图表下钻到原始记录。 | [ZIP](https://galok.cn/skills/html-report-dashboard.zip) |
+
+### 引用 Skill
+
+以下条目均来自 OpenAI。名称链接到上游源码或官方说明，收录了下载包的条目另附 ZIP。
+
+| Skill | 用途 | 下载 |
+| --- | --- | --- |
+| [Skill Creator](https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.system/skill-creator) | 创建 Skill 目录、生成界面信息并校验格式。 | [ZIP](https://galok.cn/skills/skill-creator.zip) |
+| [文档编辑](https://help.openai.com/en/articles/20001278-creating-and-editing-documents-spreadsheets-and-presentations-with-chatgpt-work) | 起草、修订 Word 文档并逐页检查排版。 | — |
+| [PDF 工具](https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/pdf) | 提取文本和表格、填表、渲染页面。 | [ZIP](https://galok.cn/skills/pdf.zip) |
+| [演示文稿](https://help.openai.com/en/articles/20001605-creating-and-collaborating-on-slides-in-chatgpt) | 制作可编辑幻灯片，检查图表、备注和导出版式。 | [ZIP](https://galok.cn/skills/presentations.zip) |
+| [电子表格](https://help.openai.com/en/articles/20001278-creating-and-editing-documents-spreadsheets-and-presentations-with-chatgpt-work) | 创建工作簿、公式和图表，交付到 Excel 或 Google 表格。 | [ZIP](https://galok.cn/skills/spreadsheets.zip) |
+| [Excel 实时编辑](https://help.openai.com/en/articles/20001063-chatgpt-for-excel-and-google-sheets) | 通过加载项编辑已打开的工作簿。 | [ZIP](https://galok.cn/skills/excel-live-control.zip) |
+| [图像生成](https://github.com/openai/codex/tree/a1604a8c0554c09c1be45e5a121bb1889b4d9a50/codex-rs/skills/src/assets/samples/imagegen) | 根据描述或参考图生成、编辑位图。 | [ZIP](https://galok.cn/skills/imagegen.zip) |
+| [交互可视化](https://learn.chatgpt.com/docs/visualizations) | 通过交互图表、地图和模拟比较数据。 | — |
+| [模板创建](https://help.openai.com/en/articles/20001278-creating-and-editing-documents-spreadsheets-and-presentations-with-chatgpt-work) | 从文档、工作簿或幻灯片中提取可复用模板。 | — |
+| [Windows 桌面操作](https://help.openai.com/en/articles/20001510-manage-browser-and-computer-use-in-your-enterprise-workspace) | 读取 Windows 窗口，操作获准使用的应用。 | — |
+
 ## 给站点添加内容
 
 仓库中的维护 Skills 放在 `.agents/skills/`。在这个仓库里使用 Agent 时，可以直接提供网址、文档或压缩包，并点名对应的 Skill。
+
+增删或改名时，同步更新 [Skills 页面清单](skills/catalog.json) 和上面的 [Skill 列表](#skill-列表)。
 
 | 要做的事 | 调用示例 | 维护位置 |
 | --- | --- | --- |

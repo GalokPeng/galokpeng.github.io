@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cloudflare 卡密文件领取"
+  short_description: "部署自有域名文件领取站，支持后台发卡、逐文件限次和下载完整性验收"
+  default_prompt: "使用 $cloudflare-file-claims 为这组小文件创建卡密领取站，配置管理后台并验证下载。"

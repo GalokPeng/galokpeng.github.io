@@ -1,5 +1,16 @@
 [
   {
+    "name": "Cloudflare 卡密文件领取",
+    "nameEn": "Cloudflare File Claims",
+    "description": "在自己的域名上搭建小文件领取站。管理员发放一次性卡密，收件人兑换后可复制下载直链，每个文件的下载次数可以单独设置。",
+    "descriptionEn": "Host a small-file pickup site on your own domain. Issue one-time codes that recipients redeem for direct download links, and set a separate download limit for each file.",
+    "file": "cloudflare-file-claims.zip",
+    "cover": "cloudflare-file-claims.webp",
+    "guide": "cloudflare-file-claims",
+    "guideLanguage": "zh",
+    "collection": "personal"
+  },
+  {
     "name": "移动应用交付",
     "nameEn": "Mobile App Delivery",
     "description": "构建并交付 Android APK 或 iOS IPA，核对签名、升级兼容性和设备安装结果。附双平台交付指南与只读安装包检查脚本。",
